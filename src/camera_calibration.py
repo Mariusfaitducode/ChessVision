@@ -1,80 +1,148 @@
-
 import numpy as np
 import cv2
 import glob
+from tqdm import tqdm
 
 
 
-# This code won't run if this file is imported.
+def calibrate_camera_from_video(video_path, chessboard_size, frame_interval=100, show_process=False):
+    """
+    Calibre la caméra en utilisant des images extraites d'une vidéo à intervalles réguliers.
+    """
+    cap = cv2.VideoCapture(video_path)
 
-# Dimensions de l’échiquier utilisé (nombre de coins internes)
-chessboard_size = (7, 7)
-frame_size = (640, 480)
+    if not cap.isOpened():
+        print(f"Erreur lors de l'ouverture de la vidéo : {video_path}")
+        return None, None
+
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    frame_size = (frame_width, frame_height)
+
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+
+    objp = np.zeros((np.prod(chessboard_size), 3), np.float32)
+    objp[:, :2] = np.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1, 2)
+
+    objpoints = []
+    imgpoints = []
+
+    pbar = tqdm(total=total_frames, desc="Calibration Progress")
+    frame_count = 0
 
 
-# Préparation des critères d’arrêt de l’algorithme
-criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+    while True:
 
-
-# Coordonnées 3D des points d'intersection de l’échiquier dans le monde réel
-objp = np.zeros((np.prod(chessboard_size), 3), np.float32)
-objp[:, :2] = np.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1, 2)
-
-
-# Listes pour stocker les points 3D du monde réel et les points 2D des images
-objpoints = []
-imgpoints = []
-
-
-# Lire toutes les images d'un dossier
-images = glob.glob('src/calibration_images/*.png')
-
-print("images : ", images)
-
-
-for fname in images:
-
-    # Lire l'image
-    img = cv2.imread(fname)
-    # cv2.imshow('img', img)
-    # cv2.waitKey(500)
-    
-    # # On convertit en gris pour la détection des coins
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # cv2.imshow('Gray img', gray)
-    # cv2.waitKey(500)
-    
-    # # Détection des coins de l'échiquier
-    ret, corners = cv2.findChessboardCorners(gray, chessboard_size, None)
-
-    print(ret, corners)
-    
-    if ret:
-        objpoints.append(objp)
-        imgpoints.append(corners)
-
-        corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+        # Stop the loop if the end of the video is reached
+        if frame_count >= total_frames:
+            break
         
-        # Afficher les coins détectés
-        cv2.drawChessboardCorners(img, chessboard_size, corners, ret)
+        if frame_count % frame_interval == 0:
 
-        cv2.imshow('img', img)
-        cv2.waitKey(1000)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_count)
+            frameFound, frame = cap.read()
 
-cv2.destroyAllWindows()
+            if not frameFound:
+                break
+
+            imgGray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+            cornersFound, corners = cv2.findChessboardCorners(imgGray, chessboard_size, 
+                                                     cv2.CALIB_CB_ADAPTIVE_THRESH + 
+                                                     cv2.CALIB_CB_FAST_CHECK + 
+                                                     cv2.CALIB_CB_NORMALIZE_IMAGE)
+
+            if cornersFound:
+                objpoints.append(objp)
+                cornersRefined = cv2.cornerSubPix(imgGray, corners, (11, 11), (-1, -1), criteria)
+                imgpoints.append(cornersRefined)
+
+                if show_process:
+                    # Optionnel : afficher les coins détectés
+                    cv2.drawChessboardCorners(frame, chessboard_size, cornersRefined, cornersFound)
+                    cv2.imshow('Chessboard Detection', frame)
+                    cv2.waitKey(500)
+
+        frame_count += 1
+        pbar.update(1)
+
+    pbar.close()
+    # print(f"Nombre d'images utilisées pour la calibration: {len(objpoints)}")
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+    if len(objpoints) > 0:
+
+        # Calibrate the camera
+        print("Calibrating the camera...")
+        repError, cameraMatrix, distCoeffs, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, frame_size, None, None)
+        
+        # Calculate reprojection error
+        mean_error = 0
+        for i in range(len(objpoints)):
+            imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], cameraMatrix, distCoeffs)
+            error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2)/len(imgpoints2)
+            mean_error += error
 
 
-# Calibration de la caméra
-ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+        # Save the camera matrix and distortion coefficients to a file
+        np.savez('camera_calibration_results.npz', cameraMatrix=cameraMatrix, distCoeffs=distCoeffs)    
+        
+        print(f"Calibration effectuée avec {len(objpoints)} images")
+        print(f"Erreur de reprojection moyenne: {mean_error/len(objpoints)}")
 
-# ret is a boolean value indicating if the calibration was successful or not
-# mtx is the camera matrix containing the intrinsic parameters of the camera
-# dist is a vector containing the distortion coefficients of the camera
-# rvecs is a list of rotation vectors for each calibration image
-# tvecs is a list of translation vectors for each calibration image
+        return cameraMatrix, distCoeffs
+    else:
+        print("Aucun échiquier détecté dans la vidéo")
+        return None, None
+    
 
-print("Camera calibrated: ", ret)
-print("Camera matrix: ", mtx)
-print("Distortion coefficients: ", dist)
-print("Rotation vectors: ", rvecs)
-print("Translation vectors: ", tvecs)
+def undistort_frame(frame, camera_matrix, dist_coeffs):
+    """
+    Corrige la distorsion d'une image en utilisant les paramètres de calibration.
+    """
+    height, width = frame.shape[:2]
+    newcameramtx, roi = cv2.getOptimalNewCameraMatrix(camera_matrix, dist_coeffs, (width,height), 1, (width,height))
+    
+    # Undistort
+    dst = cv2.undistort(frame, camera_matrix, dist_coeffs, None, newcameramtx)
+    
+    # Crop the image
+    x, y, w, h = roi
+    dst = dst[y:y+h, x:x+w]
+    
+    return dst
+
+
+
+if __name__ == "__main__":
+    # Paramètres de calibration
+    video_path = 'videos/fix_game.MOV'  # Remplacez par le chemin de votre vidéo
+    chessboard_size = (7, 7)
+    frame_interval = 1000
+
+    camera_matrix, dist_coeffs = calibrate_camera_from_video(video_path, chessboard_size, frame_interval=frame_interval, show_process=True)
+
+    if camera_matrix is not None and dist_coeffs is not None:
+        print("Camera matrix:\n", camera_matrix)
+        print("Distortion coefficients:", dist_coeffs.ravel())
+
+        # Test de la correction de distorsion sur une frame de la vidéo
+        cap = cv2.VideoCapture(video_path)
+        ret, frame = cap.read()
+        if ret:
+            undistorted_frame = undistort_frame(frame, camera_matrix, dist_coeffs)
+            cv2.imshow('Original Frame', frame)
+            cv2.imshow('Undistorted Frame', undistorted_frame)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+        cap.release()
+    else:
+        print("La calibration a échoué.")
+
+
+
+
