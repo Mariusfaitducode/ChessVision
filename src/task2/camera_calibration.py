@@ -120,11 +120,16 @@ def undistort_frame(frame, camera_matrix, dist_coeffs):
 
 if __name__ == "__main__":
     # Paramètres de calibration
-    video_path = 'videos/fix_game.MOV'  # Remplacez par le chemin de votre vidéo
+    video_path = 'videos/moving_game.MOV'  # Remplacez par le chemin de votre vidéo
     chessboard_size = (7, 7)
     frame_interval = 1000
 
-    camera_matrix, dist_coeffs = calibrate_camera_from_video(video_path, chessboard_size, frame_interval=frame_interval, show_process=True)
+    # calibrate_camera_from_video(video_path, chessboard_size, frame_interval=frame_interval, show_process=True)
+
+    # Charger les résultats de la calibration
+    calibration_results = np.load('camera_calibration_results.npz')
+    camera_matrix = calibration_results['cameraMatrix']
+    dist_coeffs = calibration_results['distCoeffs']
 
     if camera_matrix is not None and dist_coeffs is not None:
         print("Camera matrix:\n", camera_matrix)
@@ -132,13 +137,36 @@ if __name__ == "__main__":
 
         # Test de la correction de distorsion sur une frame de la vidéo
         cap = cv2.VideoCapture(video_path)
-        ret, frame = cap.read()
-        if ret:
+        # ret, frame = cap.read()
+
+        while True:
+
+            # Lire la frame
+            ret, frame = cap.read()
+            if not ret:
+                break
+
             undistorted_frame = undistort_frame(frame, camera_matrix, dist_coeffs)
+
+            # Redimensionner l'image pour l'affichage
+            display_width = 800  # Vous pouvez ajuster cette valeur selon vos besoins
+            aspect_ratio = frame.shape[1] / frame.shape[0]
+            display_height = int(display_width / aspect_ratio)
+
+            undistorted_frame = cv2.resize(undistorted_frame, (display_width, display_height))
+            frame = cv2.resize(frame, (display_width, display_height))
+
+            # Afficher l'image traitée
             cv2.imshow('Original Frame', frame)
             cv2.imshow('Undistorted Frame', undistorted_frame)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+
+            # Attendre 1ms entre chaque frame et vérifier si l'utilisateur veut quitter
+            key = cv2.waitKey(1)
+            if key & 0xFF == ord('q') or cv2.getWindowProperty('Original Frame', cv2.WND_PROP_VISIBLE) < 1 or cv2.getWindowProperty('Undistorted Frame', cv2.WND_PROP_VISIBLE) < 1:
+                break
+
+            # cv2.waitKey(0)
+        cv2.destroyAllWindows()
         cap.release()
     else:
         print("La calibration a échoué.")
