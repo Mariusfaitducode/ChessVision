@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from sticker_calibration import detect_stickers, draw_stickers
-from polygon import detect_chessboard, draw_chessboard
+from detect_corners2 import detect_chessboard, draw_chessboard
 # from camera_calibration import calibrate_camera, undistort_frame
 
 
@@ -20,6 +20,8 @@ def process_video(video_path):
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = int(cap.get(cv2.CAP_PROP_FPS))
+
+    last_area = None # Used for check the area of the chessboard
     
     while True:
 
@@ -35,7 +37,7 @@ def process_video(video_path):
         blue_stickers, pink_stickers = detect_stickers(frame)
         
         # Appliquer la détection de l'échiquier
-        chessboard_corners, approx = detect_chessboard(frame)
+        chessboard_corners, approx, last_area = detect_chessboard(frame, last_area=last_area)
 
         
         # * Draw results

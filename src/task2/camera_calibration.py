@@ -124,8 +124,10 @@ if __name__ == "__main__":
     chessboard_size = (7, 7)
     frame_interval = 1000
 
-    # calibrate_camera_from_video(video_path, chessboard_size, frame_interval=frame_interval, show_process=True)
+    # * Calibration
+    calibrate_camera_from_video(video_path, chessboard_size, frame_interval=frame_interval, show_process=True)
 
+    # * Récupération des résultats de la calibration
     # Charger les résultats de la calibration
     calibration_results = np.load('camera_calibration_results.npz')
     camera_matrix = calibration_results['cameraMatrix']

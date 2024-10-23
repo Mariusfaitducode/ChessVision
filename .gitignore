@@ -2,4 +2,6 @@
 .idea/
 # videos/
 
+__pycache__/
+
 *.MOV
