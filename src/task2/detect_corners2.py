@@ -73,14 +73,6 @@ def detect_chessboard(img, show_process=False, last_area=None):
                 continue
 
 
-            
-
-
-            
-
-            
-
-            
 
             # elif area < min_board_area or area > max_board_area:
             #     print(f"Area {area} is not between min {min_board_area} and max {max_board_area}")

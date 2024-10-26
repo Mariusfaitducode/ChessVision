@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from sticker_calibration import detect_stickers, draw_stickers
-from detect_corners2 import detect_chessboard, draw_chessboard
+from detect_corners3 import detect_chessboard_corners, refine_corners, get_warped_image, draw_chessboard, draw_refined_corners
 # from camera_calibration import calibrate_camera, undistort_frame
 
 
@@ -21,7 +21,9 @@ def process_video(video_path):
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = int(cap.get(cv2.CAP_PROP_FPS))
 
-    last_area = None # Used for check the area of the chessboard
+    # last_area = None # Used for check the area of the chessboard
+
+    last_frame_corners = None
     
     while True:
 
@@ -37,28 +39,43 @@ def process_video(video_path):
         blue_stickers, pink_stickers = detect_stickers(frame)
         
         # Appliquer la détection de l'échiquier
-        chessboard_corners, approx, last_area = detect_chessboard(frame, last_area=last_area)
+        chessboard_corners = detect_chessboard_corners(frame)
 
+        if chessboard_corners is not None:
+            chessboard_corners_refined = refine_corners(frame, chessboard_corners, 15)
+
+            frame = draw_refined_corners(frame, chessboard_corners, chessboard_corners_refined, 15)
+            last_frame_corners = chessboard_corners_refined
+
+        elif last_frame_corners is not None:
+            # chessboard_corners_refined = refine_corners(frame, last_frame_corners, 40)
+
+            # frame = draw_refined_corners(frame, last_frame_corners, chessboard_corners_refined, 40)
+            # last_frame_corners = chessboard_corners_refined
+
+            chessboard_corners_refined = last_frame_corners
+
+        warped_image = get_warped_image(frame, chessboard_corners_refined)
         
         # * Draw results
 
-        frame = draw_stickers(frame, blue_stickers, pink_stickers)
+        # frame = draw_stickers(frame, blue_stickers, pink_stickers)
     
         # Dessiner l'échiquier s'il est détecté
-        if chessboard_corners is not None:
-            frame = draw_chessboard(frame, chessboard_corners, approx)
+        # if chessboard_corners is not None:
+        #     frame = draw_chessboard(frame, chessboard_corners)
 
 
         # * Display
         
         # Redimensionner l'image pour l'affichage
-        display_width = 800  # Vous pouvez ajuster cette valeur selon vos besoins
+        display_width = 1200  # Vous pouvez ajuster cette valeur selon vos besoins
         aspect_ratio = frame.shape[1] / frame.shape[0]
         display_height = int(display_width / aspect_ratio)
         display_frame = cv2.resize(frame, (display_width, display_height))
 
         # Afficher l'image traitée
-        cv2.imshow('Processed Video', display_frame)
+        cv2.imshow('Processed Video', warped_image)
         
         # Attendre 1ms entre chaque frame et vérifier si l'utilisateur veut quitter
         key = cv2.waitKey(1)
