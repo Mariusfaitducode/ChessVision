@@ -218,10 +218,10 @@ def detect_stickers(img, corners, distance_threshold=100):
     blue_stickers = None
     pink_stickers = None
 
-    a1_corner = tuple(map(int, corners[3]))  # Bottom-left
-    a8_corner = tuple(map(int, corners[2]))  # Top-left
-    h1_corner = tuple(map(int, corners[0]))  # Bottom-right
-    h8_corner = tuple(map(int, corners[1]))  # Top-right
+    a1_corner = tuple(map(int, corners[3]))
+    a8_corner = tuple(map(int, corners[2]))
+    h1_corner = tuple(map(int, corners[0]))
+    h8_corner = tuple(map(int, corners[1]))
     reference_corners = [a1_corner, a8_corner, h1_corner, h8_corner]
 
     # Detect blue stickers
@@ -230,13 +230,12 @@ def detect_stickers(img, corners, distance_threshold=100):
     if contours_blue:
         for c in contours_blue:
             ((cX, cY), radius) = cv2.minEnclosingCircle(c)
-            # Check if the blue sticker is near any of the reference corners
             for corner in reference_corners:
                 if np.linalg.norm(np.array([cX, cY]) - np.array(corner)) < distance_threshold:
                     blue_stickers = (int(cX), int(cY), int(radius))
-                    break  # Stop if a blue sticker is found near any corner
+                    break
             if blue_stickers:
-                break  # Stop once a blue sticker is found
+                break
 
     # Detect pink stickers
     contours_pink, _ = cv2.findContours(mask_pink, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -244,13 +243,12 @@ def detect_stickers(img, corners, distance_threshold=100):
     if contours_pink:
         for c in contours_pink:
             ((cX, cY), radius) = cv2.minEnclosingCircle(c)
-            # Check if the pink sticker is near any of the reference corners
             for corner in reference_corners:
                 if np.linalg.norm(np.array([cX, cY]) - np.array(corner)) < distance_threshold:
                     pink_stickers = (int(cX), int(cY), int(radius))
-                    break  # Stop if a pink sticker is found near any corner
+                    break
             if pink_stickers:
-                break  # Stop once a pink sticker is found
+                break
 
     return blue_stickers, pink_stickers
 
