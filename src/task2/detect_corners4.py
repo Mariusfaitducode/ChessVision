@@ -319,10 +319,10 @@ def draw_chessboard(img, corners, blue_stickers, pink_stickers):
 # Cette partie ne s'exécutera que si le script est exécuté directement (pas importé)
 if __name__ == "__main__":
     # Tester la fonction avec une seule image
-    img = cv2.imread('calibration_images/img1.png')
+    img = cv2.imread('src/calibration_images/img1.png')
 
     # Charger une vidéo de test
-    video_path = 'fix_group4_1.MOV'  # Remplacez par le chemin de votre vidéo
+    video_path = 'videos/moving_game.MOV'  # Remplacez par le chemin de votre vidéo
     cap = cv2.VideoCapture(video_path)
 
     frame_interval = 100
