@@ -1,8 +1,12 @@
 import cv2
 import numpy as np
-from sticker_calibration import detect_stickers, draw_stickers
-from detect_corners3 import detect_chessboard_corners, refine_corners, get_warped_image, draw_chessboard, draw_refined_corners
+# from sticker_calibration import detect_stickers, draw_stickers
+# from detect_corners3 import detect_chessboard_corners, refine_corners, get_warped_image, draw_chessboard, draw_refined_corners
 # from camera_calibration import calibrate_camera, undistort_frame
+
+from corners_detection import detect_chessboard_corners, refine_corners, get_warped_image, draw_labeled_chessboard, draw_refined_corners
+from stickers_detection import detect_stickers, draw_stickers
+
 
 
 
@@ -35,29 +39,45 @@ def process_video(video_path):
         # * Image processing
         # blue_stickers, pink_stickers, chessboard_corners, approx = process_frame(frame)
 
-        # Appliquer la détection des autocollants
-        blue_stickers, pink_stickers = detect_stickers(frame)
+        
         
         # Appliquer la détection de l'échiquier
         chessboard_corners = detect_chessboard_corners(frame)
+        radius = 15;
 
-        if chessboard_corners is not None:
-            chessboard_corners_refined = refine_corners(frame, chessboard_corners, 15)
+        if chessboard_corners is None and last_frame_corners is not None:
+            # chessboard_corners_refined = refine_corners(frame, chessboard_corners, 15)
+            chessboard_corners = last_frame_corners
+            radius = 40
 
-            frame = draw_refined_corners(frame, chessboard_corners, chessboard_corners_refined, 15)
-            last_frame_corners = chessboard_corners_refined
+        
+        chessboard_corners_refined = refine_corners(frame, chessboard_corners, search_radius=radius)
 
-        elif last_frame_corners is not None:
-            # chessboard_corners_refined = refine_corners(frame, last_frame_corners, 40)
 
-            # frame = draw_refined_corners(frame, last_frame_corners, chessboard_corners_refined, 40)
-            # last_frame_corners = chessboard_corners_refined
 
-            chessboard_corners_refined = last_frame_corners
+        # Appliquer la détection des autocollants
+        blue_stickers, pink_stickers, labeled_corners = detect_stickers(frame, chessboard_corners_refined)
 
-        warped_image = get_warped_image(frame, chessboard_corners_refined)
         
         # * Draw results
+
+        # print(labeled_corners)
+
+
+        frame = draw_stickers(frame, blue_stickers, pink_stickers)
+
+
+        frame = draw_refined_corners(frame, chessboard_corners, chessboard_corners_refined, search_radius=radius)
+
+        frame = draw_labeled_chessboard(frame, labeled_corners)
+
+        last_frame_corners = chessboard_corners_refined
+
+
+
+        warped_image = get_warped_image(frame, chessboard_corners_refined)
+
+
 
         # frame = draw_stickers(frame, blue_stickers, pink_stickers)
     
@@ -72,10 +92,10 @@ def process_video(video_path):
         display_width = 1200  # Vous pouvez ajuster cette valeur selon vos besoins
         aspect_ratio = frame.shape[1] / frame.shape[0]
         display_height = int(display_width / aspect_ratio)
-        display_frame = cv2.resize(frame, (display_width, display_height))
+        frame = cv2.resize(frame, (display_width, display_height))
 
         # Afficher l'image traitée
-        cv2.imshow('Processed Video', warped_image)
+        cv2.imshow('Processed Video', frame)
         
         # Attendre 1ms entre chaque frame et vérifier si l'utilisateur veut quitter
         key = cv2.waitKey(1)
@@ -89,7 +109,7 @@ def process_video(video_path):
 
 
 if __name__ == "__main__":
-    video_path = 'videos/moving_game.MOV'  # Remplacez par le chemin de votre vidéo
+    video_path = 'videos/fix_game.MOV'  # Remplacez par le chemin de votre vidéo
     process_video(video_path)
 
 # Note: Assurez-vous que les fonctions importées (detect_stickers, detect_chessboard, calibrate_camera)

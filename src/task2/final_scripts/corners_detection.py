@@ -1,8 +1,13 @@
 import cv2
 import numpy as np
 
+from threading import Thread
+from queue import Queue
 
-def detect_chessboard_corners(img, show_process=False):
+from stickers_detection import detect_stickers, draw_stickers
+
+
+def detect_chessboard_corners(img):
     """
     Détecte l'échiquier dans l'image et retourne ses coins.
 
@@ -30,10 +35,15 @@ def detect_chessboard_corners(img, show_process=False):
     scale = 0.5
     small_gray = cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
 
-    cornersFound, corners = cv2.findChessboardCorners(small_gray, chessboard_size,
-                                                      cv2.CALIB_CB_ADAPTIVE_THRESH +
-                                                      cv2.CALIB_CB_FAST_CHECK +
-                                                      cv2.CALIB_CB_NORMALIZE_IMAGE)
+    
+    cornersFound, corners = find_corners_with_timeout(
+        small_gray, 
+        chessboard_size,
+        cv2.CALIB_CB_ADAPTIVE_THRESH +
+        cv2.CALIB_CB_FAST_CHECK +
+        cv2.CALIB_CB_NORMALIZE_IMAGE +
+        cv2.CALIB_CB_FILTER_QUADS
+    )
 
     if cornersFound:
         # Ajuster les coordonnées des coins à l'échelle originale
@@ -50,7 +60,6 @@ def detect_chessboard_corners(img, show_process=False):
         cornersRefined = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
         imgpoints.append(cornersRefined)
 
-        # print(cornersRefined)
         # cv2.drawChessboardCorners(img, chessboard_size, cornersRefined, cornersFound)
 
         # Retrieve the 4 points at the extremities of the matrix in cornersRefined
@@ -67,6 +76,8 @@ def detect_chessboard_corners(img, show_process=False):
         # bottom_right += [square_size, square_size]
         # bottom_left -= [square_size, square_size]
 
+        # TODO : clean this code
+
         a1 = top_left + (cornersRefined[0][0] - cornersRefined[1][0]) + (
                     cornersRefined[0][0] - cornersRefined[chessboard_size[0]][0])
         a8 = bottom_left + (cornersRefined[-chessboard_size[0]][0] - cornersRefined[-chessboard_size[0] + 1][0]) + (
@@ -77,24 +88,35 @@ def detect_chessboard_corners(img, show_process=False):
                     cornersRefined[chessboard_size[0] - 1][0] - cornersRefined[chessboard_size[0] * 2 - 1][0])
 
         corners_extremities = [a1, a8, h1, h8]
-        # print("Extremities of the chessboard corners:", corners_extremities)
-
-        if show_process:
-            # Optionnel : afficher les coins détectés
-            cv2.imshow('Chessboard Detection', img)
-            cv2.waitKey(500)
 
         return corners_extremities
 
-    else:
-        if show_process:
-            cv2.imshow('Chessboard Detection', img)
-
-    # Si aucun échiquier n'est détecté, retourner None, None
+    # Si aucun échiquier n'est détecté, retourner None
     return None
 
 
-def refine_corners(img, chessboard_corners, search_radius=20, show_process=False):
+
+def find_corners_with_timeout(gray, chessboard_size, flags):
+    result_queue = Queue()
+    
+    def worker():
+        result = cv2.findChessboardCorners(gray, chessboard_size, flags)
+        result_queue.put(result)
+    
+    thread = Thread(target=worker)
+    thread.daemon = True
+    thread.start()
+    
+    # Attendre max 0.05 secondes
+    thread.join(timeout=0.05)
+    
+    if result_queue.empty():
+        return False, None
+    
+    return result_queue.get()
+
+
+def refine_corners(img, chessboard_corners, search_radius=20):
     """
     Polishes the corners to improve their accuracy.
     """
@@ -107,34 +129,16 @@ def refine_corners(img, chessboard_corners, search_radius=20, show_process=False
     corners = cv2.cornerHarris(blurred, blockSize=2, ksize=3, k=0.04)
 
     # # Normaliser les coins pour une meilleure visualisation
-    corners_normalized = cv2.normalize(corners, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-
-    # if show_process:
-    #     cv2.imshow('Corners', corners_normalized)
-    #     cv2.waitKey(100)
+    # corners_normalized = cv2.normalize(corners, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
     # # Dilater les coins pour les rendre plus visibles
     corners_dilated = cv2.dilate(corners, None)
 
-    # if show_process:
-    #     corners_dilated_normalized = cv2.normalize(corners_dilated, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-    #     cv2.imshow('Dilated Corners', corners_dilated_normalized)
-    #     cv2.waitKey(100)
 
     # # Seuiller pour obtenir uniquement les coins les plus forts
     threshold = 0.001 * corners_dilated.max()
     corner_points = np.where(corners_dilated > threshold)
 
-    # if show_process:
-    #     thresholded = img
-    #     thresholded[corner_points] = 0
-
-    #     for i, corner in enumerate(chessboard_corners):
-    #         corner_int = tuple(corner.astype(int))
-    #         cv2.circle(gray, corner_int, 5, (0, 0, 255), -1)
-
-    #     cv2.imshow('Thresholded Corners', thresholded)
-    #     cv2.waitKey(100)
 
     # Trouver les coins les plus proches pour chaque coin de l'échiquier
     refined_corners = []
@@ -164,18 +168,6 @@ def refine_corners(img, chessboard_corners, search_radius=20, show_process=False
 
         refined_corners.append(refined_corner)
 
-    # if show_process:
-    #     # Afficher les coins raffinés
-    #     corner_img = img.copy()
-    #     for i, (original, refined) in enumerate(zip(chessboard_corners, refined_corners)):
-    #         cv2.circle(corner_img, tuple(map(int, original)), 5, (0, 0, 255), -1)  # Original en rouge
-    #         cv2.circle(corner_img, refined, 5, (0, 255, 0), -1)  # Raffiné en vert
-    #         cv2.line(corner_img, tuple(map(int, original)), refined, (255, 0, 0), 2)  # Ligne bleue entre les deux
-    #         # cv2.putText(corner_img, f'Corner {i+1}', refined, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-
-    #     cv2.imshow('Refined Corners', corner_img)
-    #     cv2.waitKey(0)
-
     return refined_corners
 
 
@@ -196,123 +188,51 @@ def get_warped_image(img, corners):
     return warped
 
 
-def detect_stickers(img, corners, distance_threshold=100):
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    blurred = cv2.GaussianBlur(hsv, (11, 11), 0)
-
-    # range for blue sticker
-    lower_blue = np.array([90, 100, 50])
-    upper_blue = np.array([150, 255, 255])
-
-    # range for pink sticker
-    lower_pink = np.array([140, 100, 100])
-    upper_pink = np.array([170, 255, 255])
-
-    # threshold to get only blue and pink colors
-    mask_blue = cv2.inRange(blurred, lower_blue, upper_blue)
-    kernel = np.ones((5, 5), np.uint8)
-    mask_blue = cv2.dilate(mask_blue, kernel, iterations=1)
-
-    mask_pink = cv2.inRange(blurred, lower_pink, upper_pink)
-
-    blue_stickers = None
-    pink_stickers = None
-
-    labeled_corners = {'a1': None, 'a8': None, 'h8': None, 'h1': None}
-
-    # Detect blue stickers
-    contours_blue, _ = cv2.findContours(mask_blue, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    contours_blue = sorted(contours_blue, key=cv2.contourArea, reverse=True)
-    if contours_blue:
-        for c in contours_blue:
-            ((cX, cY), radius) = cv2.minEnclosingCircle(c)
-            sorted_corners = sorted(corners, key=lambda corner: np.linalg.norm(np.array([cX, cY]) - np.array(corner)))
-            blue_stickers = (int(cX), int(cY), int(radius))
-
-            labeled_corners['a1'] = tuple(sorted_corners[0])
-            labeled_corners['h1'] = tuple(sorted_corners[1])
-            break
-
-    # Detect pink stickers
-    contours_pink, _ = cv2.findContours(mask_pink, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    contours_pink = sorted(contours_pink, key=cv2.contourArea, reverse=True)
-    if contours_pink:
-        for c in contours_pink:
-            ((cX, cY), radius) = cv2.minEnclosingCircle(c)
-            sorted_corners = sorted(corners, key=lambda corner: np.linalg.norm(np.array([cX, cY]) - np.array(corner)))
-            pink_stickers = (int(cX), int(cY), int(radius))
-
-            labeled_corners['a8'] = tuple(sorted_corners[0])
-            labeled_corners['h8'] = tuple(sorted_corners[1])
-            break
-
-    return blue_stickers, pink_stickers, labeled_corners
-
-
-def draw_refined_corners(img, original_corners, refined_corners, blue_stickers, pink_stickers, search_radius=20):
+def draw_refined_corners(img, original_corners, refined_corners, search_radius=20):
     corner_img = img.copy()
 
-    for i, (original, refined) in enumerate(zip(original_corners, refined_corners)):
-        # Draw search radius circle around original corner
-        cv2.circle(corner_img, tuple(map(int, original)), search_radius, (255, 255, 0),
-                   1)  # Yellow circle for search radius
+    if original_corners is None:
 
-        cv2.circle(corner_img, tuple(map(int, original)), 5, (0, 0, 255), -1)  # Original en rouge
-        cv2.circle(corner_img, refined, 5, (0, 255, 0), -1)  # Raffiné en vert
-        cv2.line(corner_img, tuple(map(int, original)), refined, (255, 0, 0), 2)  # Ligne bleue entre les deux
-        # cv2.putText(corner_img, f'Corner {i+1}', refined, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        for i, refined in enumerate(refined_corners):
+            cv2.circle(corner_img, refined, 5, (0, 255, 0), -1)  # Raffiné en vert
 
-    for (cX, cY, radius) in blue_stickers:
-        cv2.circle(corner_img, (cX, cY), radius, (255, 0, 0), 2)  # Blue outline
-        cv2.circle(corner_img, (cX, cY), 3, (0, 255, 0), -1)  # Center in green
+    else:
 
-    # Draw pink stickers
-    for (cX, cY, radius) in pink_stickers:
-        cv2.circle(corner_img, (cX, cY), radius, (255, 0, 255), 2)  # Pink outline
-        cv2.circle(corner_img, (cX, cY), 3, (0, 255, 0), -1)  # Center in green
+        for i, (original, refined) in enumerate(zip(original_corners, refined_corners)):
+            # Draw search radius circle around original corner
+            cv2.circle(corner_img, tuple(map(int, original)), search_radius, (255, 255, 0), 1)  # Yellow circle for search radius
 
-    # cv2.imshow('Refined Corners', corner_img)q
+            cv2.circle(corner_img, tuple(map(int, original)), 5, (0, 0, 255), -1)  # Original en rouge
+            cv2.circle(corner_img, refined, 5, (0, 255, 0), -1)  # Raffiné en vert
+            cv2.line(corner_img, tuple(map(int, original)), refined, (255, 0, 0), 2)  # Ligne bleue entre les deux
+            # cv2.putText(corner_img, f'Corner {i+1}', refined, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+    
+
+    # cv2.imshow('Refined Corners', corner_img)
     # cv2.waitKey(0)
     return corner_img
 
 
-def draw_chessboard(img, corners, blue_stickers=None, pink_stickers=None):
-    """
-    Dessine l'échiquier détecté sur l'image en utilisant polylines.
-    
-    :param img: Image d'entrée
-    :param corners: Liste des coordonnées des coins [a1, a8, h8, h1]
-    :param blue_stickers: Liste des positions des stickers bleus (optionnel) au format (x, y, rayon)
-    :param pink_stickers: Liste des positions des stickers roses (optionnel) au format (x, y, rayon)
-    :return: Image avec l'échiquier dessiné
-    """
-    if corners is None:
+def draw_labeled_chessboard(img, labeled_corners):
+   
+    if labeled_corners is None:
         return img
 
-    # Convertir la liste de coins en tableau numpy
-    corners_array = np.array(corners, dtype=np.int32)
-    
-    # Dessiner le contour de l'échiquier
-    cv2.polylines(img, [corners_array], True, (0, 255, 0), 2)
-    
-    # Dessiner les coins individuels avec leurs labels
-    corner_labels = ['a1', 'a8', 'h8', 'h1']
-    for i, corner in enumerate(corners):
-        corner_int = tuple(corner.astype(int))
-        cv2.circle(img, corner_int, 5, (0, 0, 255), -1)
-        cv2.putText(img, corner_labels[i], (corner_int[0] + 10, corner_int[1] + 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+    # Draw labels for each corner
+    for label, coords in labeled_corners.items():
+        if coords is not None:
+            # Convert coordinates to integers and tuple
+            coords = tuple(map(int, coords))
+            # Draw text slightly offset from the corner point
+            cv2.putText(img, label, 
+                       (coords[0] + 10, coords[1] + 10),  # Offset text position
+                       cv2.FONT_HERSHEY_SIMPLEX,  # Font
+                       0.8,  # Font scale
+                       (0, 0, 0),  # Color (green)
+                       2)  # Thickness
 
-    # Dessiner les stickers si présents
-    if blue_stickers is not None and len(blue_stickers) > 0:
-        cX, cY, radius = blue_stickers[0]  # Déballage du tuple
-        cv2.circle(img, (cX, cY), radius, (255, 0, 0), 2)  # Contour du sticker
-        cv2.circle(img, (cX, cY), 3, (0, 255, 0), -1)  # Centre du sticker
-
-    if pink_stickers is not None and len(pink_stickers) > 0:
-        cX, cY, radius = pink_stickers[0]  # Déballage du tuple
-        cv2.circle(img, (cX, cY), radius, (255, 0, 255), 2)  # Contour du sticker
-        cv2.circle(img, (cX, cY), 3, (0, 255, 0), -1)  # Centre du sticker
+    
     
     return img
 
@@ -356,7 +276,7 @@ if __name__ == "__main__":
                     blue_stickers = [blue_sticker] if blue_sticker else []
                     pink_stickers = [pink_sticker] if pink_sticker else []
 
-                    img_with_chessboard = draw_chessboard(frame.copy(), corners, blue_stickers, pink_stickers)
+                    img_with_chessboard = draw_labeled_chessboard(frame.copy(), corners, blue_stickers, pink_stickers)
 
                     # display_width = 800  # Vous pouvez ajuster cette valeur selon vos besoins
                     # aspect_ratio = img_with_chessboard.shape[1] / img_with_chessboard.shape[0]
