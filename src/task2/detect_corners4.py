@@ -218,11 +218,7 @@ def detect_stickers(img, corners, distance_threshold=100):
     blue_stickers = None
     pink_stickers = None
 
-    a1_corner = tuple(map(int, corners[3]))
-    a8_corner = tuple(map(int, corners[2]))
-    h1_corner = tuple(map(int, corners[0]))
-    h8_corner = tuple(map(int, corners[1]))
-    reference_corners = [a1_corner, a8_corner, h1_corner, h8_corner]
+    labeled_corners = {'a1': None, 'a8': None, 'h8': None, 'h1': None}
 
     # Detect blue stickers
     contours_blue, _ = cv2.findContours(mask_blue, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -230,12 +226,12 @@ def detect_stickers(img, corners, distance_threshold=100):
     if contours_blue:
         for c in contours_blue:
             ((cX, cY), radius) = cv2.minEnclosingCircle(c)
-            for corner in reference_corners:
-                if np.linalg.norm(np.array([cX, cY]) - np.array(corner)) < distance_threshold:
-                    blue_stickers = (int(cX), int(cY), int(radius))
-                    break
-            if blue_stickers:
-                break
+            sorted_corners = sorted(corners, key=lambda corner: np.linalg.norm(np.array([cX, cY]) - np.array(corner)))
+            blue_stickers = (int(cX), int(cY), int(radius))
+
+            labeled_corners['a1'] = tuple(sorted_corners[0])
+            labeled_corners['h1'] = tuple(sorted_corners[1])
+            break
 
     # Detect pink stickers
     contours_pink, _ = cv2.findContours(mask_pink, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -243,14 +239,14 @@ def detect_stickers(img, corners, distance_threshold=100):
     if contours_pink:
         for c in contours_pink:
             ((cX, cY), radius) = cv2.minEnclosingCircle(c)
-            for corner in reference_corners:
-                if np.linalg.norm(np.array([cX, cY]) - np.array(corner)) < distance_threshold:
-                    pink_stickers = (int(cX), int(cY), int(radius))
-                    break
-            if pink_stickers:
-                break
+            sorted_corners = sorted(corners, key=lambda corner: np.linalg.norm(np.array([cX, cY]) - np.array(corner)))
+            pink_stickers = (int(cX), int(cY), int(radius))
 
-    return blue_stickers, pink_stickers
+            labeled_corners['a8'] = tuple(sorted_corners[0])
+            labeled_corners['h8'] = tuple(sorted_corners[1])
+            break
+
+    return blue_stickers, pink_stickers, labeled_corners
 
 
 def draw_refined_corners(img, original_corners, refined_corners, blue_stickers, pink_stickers, search_radius=20):
@@ -291,14 +287,14 @@ def draw_chessboard(img, corners, blue_stickers, pink_stickers):
 
     if corners is not None:
         # Convertir les coins en un tableau numpy pour polylines
-        corners_array = np.array(corners, dtype=np.int32)
+        corners_array = np.array(list(corners.values()), dtype=np.int32)
 
         # Dessiner le contour de l'échiquier
         cv2.polylines(img, [corners_array], True, (0, 255, 0), 2)
 
         # Dessiner les coins individuels avec leurs labels
         corner_labels = ['a1', 'a8', 'h1', 'h8']
-        for i, corner in enumerate(corners):
+        for label, corner in corners.items():
             corner_int = tuple(corner.astype(int))
             cv2.circle(img, corner_int, 5, (0, 0, 255), -1)
             cv2.putText(img, corner_labels[i], (corner_int[0] + 10, corner_int[1] + 10),
