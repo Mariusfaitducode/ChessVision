@@ -8,11 +8,13 @@ def detect_stickers(img, corners, distance_threshold=100):
     Détecte les autocollants bleus et roses sur l'image.
     """
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    blurred = cv2.GaussianBlur(hsv, (11, 11), 0)
+    blurred = cv2.GaussianBlur(hsv, (15, 15), 0)
 
     # range for blue sticker
-    lower_blue = np.array([90, 100, 50])
-    upper_blue = np.array([150, 255, 255])
+    lower_blue = np.array([90, 80, 200])
+    upper_blue = np.array([130, 255, 255])
+    # lower_blue = np.array([90, 100, 50])
+    # upper_blue = np.array([150, 205, 255])
 
     # range for pink sticker
     lower_pink = np.array([140, 100, 100])
@@ -21,7 +23,8 @@ def detect_stickers(img, corners, distance_threshold=100):
     # threshold to get only blue and pink colors
     mask_blue = cv2.inRange(blurred, lower_blue, upper_blue)
     kernel = np.ones((5, 5), np.uint8)
-    mask_blue = cv2.dilate(mask_blue, kernel, iterations=1)
+    mask_blue = cv2.erode(mask_blue, kernel, iterations=1)
+    mask_blue = cv2.dilate(mask_blue, kernel, iterations=2)
 
     mask_pink = cv2.inRange(blurred, lower_pink, upper_pink)
 
