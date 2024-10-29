@@ -1,8 +1,7 @@
 import cv2
 import numpy as np
 
-from threading import Thread
-from queue import Queue
+from utils import find_corners_with_timeout
 
 from stickers_detection import detect_stickers, draw_stickers
 
@@ -94,26 +93,6 @@ def detect_chessboard_corners(img):
     # Si aucun échiquier n'est détecté, retourner None
     return None
 
-
-
-def find_corners_with_timeout(gray, chessboard_size, flags):
-    result_queue = Queue()
-    
-    def worker():
-        result = cv2.findChessboardCorners(gray, chessboard_size, flags)
-        result_queue.put(result)
-    
-    thread = Thread(target=worker)
-    thread.daemon = True
-    thread.start()
-    
-    # Attendre max 0.05 secondes
-    thread.join(timeout=0.05)
-    
-    if result_queue.empty():
-        return False, None
-    
-    return result_queue.get()
 
 
 def refine_corners(img, chessboard_corners, search_radius=20):

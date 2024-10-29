@@ -6,6 +6,9 @@ import numpy as np
 
 from corners_detection import detect_chessboard_corners, refine_corners, get_warped_image, draw_labeled_chessboard, draw_refined_corners
 from stickers_detection import detect_stickers, draw_stickers
+from chessboard_homography import compute_homography, compute_pose, draw_axis
+
+from utils import resize_frame
 
 
 
@@ -36,10 +39,7 @@ def process_video(video_path):
         if not ret:
             break
         
-        # * Image processing
-        # blue_stickers, pink_stickers, chessboard_corners, approx = process_frame(frame)
-
-        
+        # * IMAGE PROCESSING
         
         # Appliquer la détection de l'échiquier
         chessboard_corners = detect_chessboard_corners(frame)
@@ -58,10 +58,19 @@ def process_video(video_path):
         # Appliquer la détection des autocollants
         blue_stickers, pink_stickers, labeled_corners = detect_stickers(frame, chessboard_corners_refined)
 
+
+        # Calculer l'homographie et la pose
+        H, homography_corners, objp = compute_homography(frame)
+
+        if H is not None:
+            print(labeled_corners)
+            rvec, tvec = compute_pose(objp, labeled_corners)
         
-        # * Draw results
+        # * DRAW RESULTS
 
         # print(labeled_corners)
+
+        frame = draw_axis(frame, rvec, tvec)
 
 
         frame = draw_stickers(frame, blue_stickers, pink_stickers)
@@ -86,13 +95,8 @@ def process_video(video_path):
         #     frame = draw_chessboard(frame, chessboard_corners)
 
 
-        # * Display
-        
-        # Redimensionner l'image pour l'affichage
-        display_width = 1200  # Vous pouvez ajuster cette valeur selon vos besoins
-        aspect_ratio = frame.shape[1] / frame.shape[0]
-        display_height = int(display_width / aspect_ratio)
-        frame = cv2.resize(frame, (display_width, display_height))
+        # * DISPLAY RESULTS
+        frame = resize_frame(frame, 1200)
 
         # Afficher l'image traitée
         cv2.imshow('Processed Video', frame)
@@ -109,7 +113,7 @@ def process_video(video_path):
 
 
 if __name__ == "__main__":
-    video_path = 'videos/fix_game.MOV'  # Remplacez par le chemin de votre vidéo
+    video_path = 'videos/moving_game.MOV'  # Remplacez par le chemin de votre vidéo
     process_video(video_path)
 
 # Note: Assurez-vous que les fonctions importées (detect_stickers, detect_chessboard, calibrate_camera)
