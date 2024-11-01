@@ -8,7 +8,7 @@
 
 In this task, it was necessary to implement techniques for calibrating a chessboard and detecting its corners and stickers using video input. The goal is to identify the sides of the chessboard in the fixed and moving positions.
 
-We then compute and draw the polygon formed by the detected corners, saving annotated images every 100th frame.
+We then compute and draw 4 corners and annotations to them and detected stickers which help to identify the side of the board, saving annotated images every 100th frame.
 
 ---
 
@@ -22,7 +22,7 @@ scprits.
 - `corners_detection.py`: Functions for detecting chessboard corners.
 - `stickers_detection.py`: This function detects blue and pink stickers on the chessboard.
 - `chessboard_homography.py`: Functions for computing the homography of the detected corners.
-- `utils.py`: Some utility functions used across the project.
+- `utils.py`: Utility functions used across the project.
 
 ---
 
@@ -50,7 +50,6 @@ scprits.
 
 ## The reason for chosen model for calibration
 
-For the calibration the findChessboardCorners function was chosen due to several reasons
-The `findChessboardCorners` function is part of the OpenCV library, because of this
-it is relatively straightforward to integrate into our project without needing to implement a custom corner detection algorithm from scratch.
-Moreover, `findChessboardCorners` integrates with other OpenCV functions used for camera calibration, such as `calibrateCamera` and `cornerSubPix`. 
+For the calibration, the findChessboardCorners function was chosen due to several reasons.
+The `findChessboardCorners` function is part of the OpenCV library, because of this it is relatively straightforward to integrate into our project without needing to implement a custom corner detection algorithm from scratch.
+Moreover, `findChessboardCorners` integrates with other OpenCV functions used for camera calibration, such as `calibrateCamera` and `cornerSubPix`. So, it is easier to implement it in combination with other functions.
