@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import numpy as np
 # from sticker_calibration import detect_stickers, draw_stickers
@@ -9,9 +11,6 @@ from stickers_detection import detect_stickers, draw_stickers
 from chessboard_homography import compute_homography, compute_pose, draw_axis
 
 from utils import resize_frame
-
-
-
 
 def process_video(video_path):
     # Ouvrir la vidéo
@@ -31,7 +30,20 @@ def process_video(video_path):
     # last_area = None # Used for check the area of the chessboard
 
     last_frame_corners = None
-    
+    # last_successful_frame = None
+    frame_count = 0
+    cache = {
+        'frame': None,
+        'H': None,
+        'homography_corners': None,
+        'objp': None,
+        'chessboard_corners': None,
+        'blue_stickers': None,
+        'pink_stickers': None,
+        'labeled_corners': None,
+
+    }
+    last_frame = None
     while True:
 
         # Lire la frame
@@ -43,68 +55,79 @@ def process_video(video_path):
         
         # Appliquer la détection de l'échiquier
         chessboard_corners = detect_chessboard_corners(frame)
-        radius = 15;
+        radius = 15
 
-        if chessboard_corners is None and last_frame_corners is not None:
-            # chessboard_corners_refined = refine_corners(frame, chessboard_corners, 15)
+        if chessboard_corners:
+            # print(chessboard_corners)
+            last_frame_corners = chessboard_corners
+            last_frame = frame
+            cache['frame'] = frame
+            cache['chessboard_corners'] = chessboard_corners
+        elif chessboard_corners is None or any(corner is None for corner in chessboard_corners):
             chessboard_corners = last_frame_corners
+            frame = last_frame
             radius = 40
-
         
         chessboard_corners_refined = refine_corners(frame, chessboard_corners, search_radius=radius)
 
-
-
         # Appliquer la détection des autocollants
         blue_stickers, pink_stickers, labeled_corners = detect_stickers(frame, chessboard_corners_refined)
+        # if blue_stickers:
+        cache['blue_stickers'] = blue_stickers if blue_stickers else cache['blue_stickers']
+        cache['pink_stickers'] = pink_stickers if pink_stickers else cache['pink_stickers']
+        cache['labeled_corners'] = labeled_corners if all(corner is not None for corner in labeled_corners.values()) else cache['labeled_corners']
+        # pink_stickersif pink_stickers:
 
 
         # Calculer l'homographie et la pose
         H, homography_corners, objp = compute_homography(frame)
-
+        # print(f'Homography Matrix= {H}, {homography_corners}, {objp}')
+        if frame_count == 1293:
+            print()
         if H is not None:
-            print(labeled_corners)
-            rvec, tvec = compute_pose(objp, labeled_corners)
-        
-        # * DRAW RESULTS
+            cache['H'] = H
+            cache['homography_corners'] = homography_corners
+            cache['objp'] = objp
 
-        # print(labeled_corners)
+        if all(corner is not None for corner in cache['labeled_corners'].values()) and cache['H'] is not None:
+            print(f"Frame {frame_count}: {cache['labeled_corners']}")
+            rvec, tvec = compute_pose(cache['objp'], cache['labeled_corners'])
+            frame = draw_axis(frame, rvec, tvec)
+            frame = draw_refined_corners(frame, cache['chessboard_corners'], chessboard_corners_refined, search_radius=radius)
+            frame = draw_labeled_chessboard(frame, cache['labeled_corners'])
+            frame = draw_stickers(frame, cache['blue_stickers'], cache['pink_stickers'])
 
-        frame = draw_axis(frame, rvec, tvec)
+            last_frame_corners = chessboard_corners_refined
 
+            # * DISPLAY RESULTS
+            frame = resize_frame(frame, 1200)
+            # last_frame = frame.copy()
 
-        frame = draw_stickers(frame, blue_stickers, pink_stickers)
-
-
-        frame = draw_refined_corners(frame, chessboard_corners, chessboard_corners_refined, search_radius=radius)
-
-        frame = draw_labeled_chessboard(frame, labeled_corners)
-
-        last_frame_corners = chessboard_corners_refined
-
-
-
-        warped_image = get_warped_image(frame, chessboard_corners_refined)
-
-
-
-        # frame = draw_stickers(frame, blue_stickers, pink_stickers)
-    
-        # Dessiner l'échiquier s'il est détecté
-        # if chessboard_corners is not None:
-        #     frame = draw_chessboard(frame, chessboard_corners)
+        else:
+            print(f"Frame {frame_count}: Incomplete corners, skipping pose computation")
+            frame_count += 1
+            continue
 
 
-        # * DISPLAY RESULTS
-        frame = resize_frame(frame, 1200)
+        os.makedirs('images_1', exist_ok=True)
+        # * SAVE IMAGE EVERY 100th FRAME
+        if frame_count % 100 == 0:
+            if frame is not None:
+                frame_name = f"frame_{frame_count:06d}.png"
+                cv2.imwrite(os.path.join('images_1', frame_name), frame)
+                print(f"Saved: {frame_name}")
 
         # Afficher l'image traitée
-        cv2.imshow('Processed Video', frame)
-        
-        # Attendre 1ms entre chaque frame et vérifier si l'utilisateur veut quitter
-        key = cv2.waitKey(1)
-        if key & 0xFF == ord('q') or cv2.getWindowProperty('Processed Video', cv2.WND_PROP_VISIBLE) < 1:
-            break
+        # cv2.imshow('Processed Video', frame)
+        #
+        # #Save the frames names
+        #
+        # # Attendre 1ms entre chaque frame et vérifier si l'utilisateur veut quitter
+        # key = cv2.waitKey(1)
+        # if key & 0xFF == ord('q') or cv2.getWindowProperty('Processed Video', cv2.WND_PROP_VISIBLE) < 1:
+        #     break
+
+        frame_count += 1
     
     # Libérer les ressources
     cap.release()
@@ -113,7 +136,8 @@ def process_video(video_path):
 
 
 if __name__ == "__main__":
-    video_path = 'videos/moving_game.MOV'  # Remplacez par le chemin de votre vidéo
+    video_path = ('C:/Users/VaryaStrizh/CV/elen0016-computer-vision-tutorial-master/elen0016-computer-vision-tutorial'
+                  '-master/project/task2/videos/moving_2.mov')  # Remplacez par le chemin de votre vidéo
     process_video(video_path)
 
 # Note: Assurez-vous que les fonctions importées (detect_stickers, detect_chessboard, calibrate_camera)
