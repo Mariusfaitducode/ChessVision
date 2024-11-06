@@ -6,7 +6,7 @@ import numpy as np
 # from detect_corners3 import detect_chessboard_corners, refine_corners, get_warped_image, draw_chessboard, draw_refined_corners
 # from camera_calibration import calibrate_camera, undistort_frame
 
-from corners_detection import detect_chessboard_corners, refine_corners, get_warped_image, draw_labeled_chessboard, draw_refined_corners
+from corners_detection import detect_chessboard_corners_extremities, refine_corners, draw_labeled_chessboard, draw_refined_corners
 from stickers_detection import detect_stickers, draw_stickers
 from chessboard_homography import compute_homography, compute_pose, draw_axis
 
@@ -54,7 +54,8 @@ def process_video(video_path):
         # * IMAGE PROCESSING
         
         # Appliquer la détection de l'échiquier
-        chessboard_corners = detect_chessboard_corners(frame)
+        # chessboard_corners = detect_chessboard_corners(frame)
+        chessboard_corners = None
         radius = 15
 
         if chessboard_corners:
@@ -138,6 +139,10 @@ def process_video(video_path):
 if __name__ == "__main__":
     video_path = ('C:/Users/VaryaStrizh/CV/elen0016-computer-vision-tutorial-master/elen0016-computer-vision-tutorial'
                   '-master/project/task2/videos/moving_2.mov')  # Remplacez par le chemin de votre vidéo
+    
+
+    video_path = 'videos/moving_game.mov'
+
     process_video(video_path)
 
 # Note: Assurez-vous que les fonctions importées (detect_stickers, detect_chessboard, calibrate_camera)

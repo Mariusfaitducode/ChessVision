@@ -5,35 +5,13 @@ from tqdm import tqdm
 from utils import find_corners_with_timeout, resize_frame
 
 
-def compute_homography(frame, board_size=(7, 7), square_size=100):
+def compute_homography(corners, board_size=(7, 7), square_size=100):
     """
     Calcule la matrice d'homographie et la pose 3D pour une image donnée.
     """
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     
-    # Réduire la résolution de l'image pour accélérer la détection
-    scale = 0.5
-    small_gray = cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
-    
-    cornersFound, corners = find_corners_with_timeout(
-        small_gray, 
-        board_size,
-        cv2.CALIB_CB_ADAPTIVE_THRESH +
-        cv2.CALIB_CB_FAST_CHECK +
-        cv2.CALIB_CB_NORMALIZE_IMAGE +
-        cv2.CALIB_CB_FILTER_QUADS
-    )
-
-    if not cornersFound:
-        return None, None, None
-    else:
-        corners = corners * (1.0 / scale)
-
-        # Affiner la détection des coins
-        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-        corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
         
-
+    try:
         # Points 3D de l'échiquier
         objp = np.zeros((board_size[0] * board_size[1], 3), np.float32)
         objp[:, :2] = np.mgrid[0:board_size[0], 0:board_size[1]].T.reshape(-1, 2) * square_size
@@ -47,7 +25,11 @@ def compute_homography(frame, board_size=(7, 7), square_size=100):
         
         H, _ = cv2.findHomography(corners.reshape(-1, 2), dst_points)
         
-        return H, corners,objp
+        return H, objp
+    
+    except Exception as e:
+        print(f"Error computing homography: {e}")
+        return None, None
     
 
 

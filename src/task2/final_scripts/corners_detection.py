@@ -6,29 +6,13 @@ from utils import find_corners_with_timeout
 from stickers_detection import detect_stickers, draw_stickers
 
 
-def detect_chessboard_corners(img):
-    """
-    Détecte l'échiquier dans l'image et retourne ses coins.
 
-    :param img: Image d'entrée en couleur (BGR)
-    :param show_process: Booléen pour afficher les étapes intermédiaires
-    :return: Liste des coordonnées des coins [a1, a8, h8, h1] et contour approché, ou (None, None) si non détecté
-    """
-
-    chessboard_size = (7, 7)
+def detect_corners(img, chessboard_size = (7, 7)):
 
     # Conversion de l'image en niveaux de gris pour simplifier le traitement
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-
-    objp = np.zeros((np.prod(chessboard_size), 3), np.float32)
-    objp[:, :2] = np.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1, 2)
-
-    objpoints = []
-    imgpoints = []
-
-    start_time = cv2.getTickCount()
 
     # Réduire la résolution de l'image pour accélérer la détection
     scale = 0.5
@@ -47,25 +31,39 @@ def detect_chessboard_corners(img):
     if cornersFound:
         # Ajuster les coordonnées des coins à l'échelle originale
         corners = corners * (1.0 / scale)
+        corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
     else:
         corners = None
+    return corners
 
-    end_time = cv2.getTickCount()
-    execution_time = (end_time - start_time) / cv2.getTickFrequency()
-    print(f"Temps d'exécution de findChessboardCorners: {execution_time:.4f} secondes")
 
-    if cornersFound:
-        objpoints.append(objp)
-        cornersRefined = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
-        imgpoints.append(cornersRefined)
 
-        # cv2.drawChessboardCorners(img, chessboard_size, cornersRefined, cornersFound)
 
+
+def detect_chessboard_corners_extremities(img, corners, chessboard_size = (7, 7)):
+    """
+    Détecte l'échiquier dans l'image et retourne ses coins.
+
+    :param img: Image d'entrée en couleur (BGR)
+    :param show_process: Booléen pour afficher les étapes intermédiaires
+    :return: Liste des coordonnées des coins [a1, a8, h8, h1] et contour approché, ou (None, None) si non détecté
+    """
+
+    objp = np.zeros((np.prod(chessboard_size), 3), np.float32)
+    objp[:, :2] = np.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1, 2)
+
+    objpoints = []
+    imgpoints = []
+    
+    objpoints.append(objp)
+    imgpoints.append(corners)
+
+    try:
         # Retrieve the 4 points at the extremities of the matrix in cornersRefined
-        top_left = cornersRefined[0][0]
-        top_right = cornersRefined[chessboard_size[0] - 1][0]
-        bottom_right = cornersRefined[-1][0]
-        bottom_left = cornersRefined[-chessboard_size[0]][0]
+        top_left = corners[0][0]
+        top_right = corners[chessboard_size[0] - 1][0]
+        bottom_right = corners[-1][0]
+        bottom_left = corners[-chessboard_size[0]][0]
 
         # Retrouver les 4 points extremities de l'échiquier
         # square_size = np.linalg.norm(cornersRefined[0] - cornersRefined[chessboard_size[0]])
@@ -77,21 +75,24 @@ def detect_chessboard_corners(img):
 
         # TODO : clean this code
 
-        a1 = top_left + (cornersRefined[0][0] - cornersRefined[1][0]) + (
-                    cornersRefined[0][0] - cornersRefined[chessboard_size[0]][0])
-        a8 = bottom_left + (cornersRefined[-chessboard_size[0]][0] - cornersRefined[-chessboard_size[0] + 1][0]) + (
-                    cornersRefined[-chessboard_size[0]][0] - cornersRefined[-chessboard_size[0] * 2][0])
-        h1 = bottom_right + (cornersRefined[-1][0] - cornersRefined[-2][0]) + (
-                    cornersRefined[-1][0] - cornersRefined[-chessboard_size[0] - 1][0])
-        h8 = top_right + (cornersRefined[chessboard_size[0] - 1][0] - cornersRefined[chessboard_size[0] - 2][0]) + (
-                    cornersRefined[chessboard_size[0] - 1][0] - cornersRefined[chessboard_size[0] * 2 - 1][0])
+        a1 = top_left + (corners[0][0] - corners[1][0]) + (
+                    corners[0][0] - corners[chessboard_size[0]][0])
+        a8 = bottom_left + (corners[-chessboard_size[0]][0] - corners[-chessboard_size[0] + 1][0]) + (
+                    corners[-chessboard_size[0]][0] - corners[-chessboard_size[0] * 2][0])
+        h1 = bottom_right + (corners[-1][0] - corners[-2][0]) + (
+                    corners[-1][0] - corners[-chessboard_size[0] - 1][0])
+        h8 = top_right + (corners[chessboard_size[0] - 1][0] - corners[chessboard_size[0] - 2][0]) + (
+                    corners[chessboard_size[0] - 1][0] - corners[chessboard_size[0] * 2 - 1][0])
 
         corners_extremities = [a1, a8, h1, h8]
 
         return corners_extremities
+    
+    except:
+        return None
+    
 
-    # Si aucun échiquier n'est détecté, retourner None
-    return None
+    
 
 
 
@@ -243,7 +244,12 @@ if __name__ == "__main__":
                 if not ret:
                     break
 
-                corners = detect_chessboard_corners(frame, show_process=False)
+                # corners = detect_chessboard_corners(frame, show_process=False)
+                corners = detect_corners(frame)
+
+                chessboard_corners_extremities = detect_chessboard_corners_extremities(frame, corners)
+
+                corners = chessboard_corners_extremities
 
                 if corners is not None:
 
