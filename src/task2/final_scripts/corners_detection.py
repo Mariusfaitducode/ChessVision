@@ -151,7 +151,13 @@ def refine_corners(img, chessboard_corners, search_radius=20):
     return refined_corners
 
 
-def get_warped_image(img, corners):
+def get_warped_image(img, labeled_corners):
+
+    # print("labeled_corners : ", labeled_corners)
+
+    corners = list(labeled_corners.values())
+    
+
     # Ensure corners are in the correct order: [top-left, top-right, bottom-right, bottom-left]
     src_pts = np.array(corners, dtype=np.float32)
 

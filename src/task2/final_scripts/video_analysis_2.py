@@ -6,7 +6,7 @@ import numpy as np
 # from detect_corners3 import detect_chessboard_corners, refine_corners, get_warped_image, draw_chessboard, draw_refined_corners
 # from camera_calibration import calibrate_camera, undistort_frame
 
-from corners_detection import detect_corners, detect_chessboard_corners_extremities, refine_corners, draw_labeled_chessboard, draw_refined_corners
+from corners_detection import *
 from stickers_detection import detect_stickers, draw_stickers
 from chessboard_homography import compute_homography, compute_pose, draw_axis
 
@@ -121,11 +121,17 @@ def process_video(video_path):
         # * VISUALIZATION
         ###########################################
 
+        warped_frame = None
+
+        if all(corner is not None for corner in cache['labeled_corners'].values()):
+            warped_frame = get_warped_image(frame, cache['labeled_corners'])
+            frame = draw_labeled_chessboard(frame, cache['labeled_corners'])
+
+
         if cache['chessboard_corners_extremities'] is not None and chessboard_corners_refined is not None:
             frame = draw_refined_corners(frame, cache['chessboard_corners_extremities'], chessboard_corners_refined, search_radius=radius)
 
-        if all(corner is not None for corner in cache['labeled_corners'].values()):
-            frame = draw_labeled_chessboard(frame, cache['labeled_corners'])
+        
 
         if cache['blue_stickers'] is not None and cache['pink_stickers'] is not None:
             frame = draw_stickers(frame, cache['blue_stickers'], cache['pink_stickers'])
@@ -140,6 +146,8 @@ def process_video(video_path):
 
         frame = resize_frame(frame, 1200)
         cv2.imshow('frame', frame)
+
+        cv2.imshow('warped_frame', warped_frame)
 
         key = cv2.waitKey(1)
         if key & 0xFF == ord('q'):
@@ -157,6 +165,11 @@ def process_video(video_path):
                 frame_name = f"frame_{frame_count:06d}.png"
                 cv2.imwrite(os.path.join('images_1', frame_name), frame)
                 print(f"Saved: {frame_name}")
+
+            if warped_frame is not None:
+                warped_frame_name = f"warped_frame_{frame_count:06d}.png"
+                cv2.imwrite(os.path.join('images_1', warped_frame_name), warped_frame)
+                print(f"Saved: {warped_frame_name}")
 
         frame_count += 1
     
