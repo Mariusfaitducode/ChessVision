@@ -12,12 +12,12 @@ def compute_homography(corners, board_size=(7, 7), square_size=100):
     
         
     try:
-        # Points 3D de l'échiquier
+        # 3D points of the chessboard
         objp = np.zeros((board_size[0] * board_size[1], 3), np.float32)
         objp[:, :2] = np.mgrid[0:board_size[0], 0:board_size[1]].T.reshape(-1, 2) * square_size
 
 
-        # Calculer l'homographie
+        # Calculate homography
         dst_points = np.zeros((board_size[0] * board_size[1], 2), np.float32)
         for i in range(board_size[0]):
             for j in range(board_size[1]):
@@ -44,8 +44,8 @@ def compute_pose(objp, labeled_corners):
             labeled_corners['h1']
         ], dtype=np.float32)
         
-        # Créer les points 3D correspondants aux 4 coins
-        # Pour un échiquier 7x7 avec des carrés de 100mm
+        # Create 3D points corresponding to the 4 corners
+        # For a 7x7 chessboard with 100mm squares
         object_points = np.array([
             [0, 0, 0],           # a1 (coin bas gauche)
             [0, 600, 0],         # a8 (coin haut gauche)
@@ -55,7 +55,7 @@ def compute_pose(objp, labeled_corners):
     else:
         return None, None
 
-    # Paramètres de la caméra
+    # Camera parameters
     calibration_results = np.load('camera_calibration_results.npz')
     camera_matrix = calibration_results['cameraMatrix']
     dist_coeffs = calibration_results['distCoeffs']
@@ -67,27 +67,27 @@ def compute_pose(objp, labeled_corners):
 
 def draw_axis(frame, rvec, tvec):
     """
-    Dessine les axes 3D sur l'image.
+    Draw 3D axes on the image.
     """
-    # Paramètres de la caméra (estimation approximative si non calibrée)
+    # Camera parameters (approximate estimation if not calibrated)
     camera_matrix = np.array([[frame.shape[1], 0, frame.shape[1]/2],
                              [0, frame.shape[1], frame.shape[0]/2],
                              [0, 0, 1]], dtype=np.float32)
     dist_coeffs = np.zeros((4,1))
 
-    # Points pour dessiner les axes
+    # Points to draw the axes
     axis_length = 100
     axis_points = np.float32([[0,0,0], [axis_length,0,0], [0,axis_length,0], [0,0,axis_length]])
     
-    # Projeter les points des axes
+    # Project the axis points
     imgpts, _ = cv2.projectPoints(axis_points, rvec, tvec, camera_matrix, dist_coeffs)
     imgpts = imgpts.astype(int)
     
-    # Dessiner les axes
+    # Draw the axes
     origin = tuple(imgpts[0].ravel())
-    frame = cv2.line(frame, origin, tuple(imgpts[1].ravel()), (0,0,255), 3)  # X axis (Rouge)
-    frame = cv2.line(frame, origin, tuple(imgpts[2].ravel()), (0,255,0), 3)  # Y axis (Vert)
-    frame = cv2.line(frame, origin, tuple(imgpts[3].ravel()), (255,0,0), 3)  # Z axis (Bleu)
+    frame = cv2.line(frame, origin, tuple(imgpts[1].ravel()), (0,0,255), 3)  # X axis (Red)
+    frame = cv2.line(frame, origin, tuple(imgpts[2].ravel()), (0,255,0), 3)  # Y axis (Green)
+    frame = cv2.line(frame, origin, tuple(imgpts[3].ravel()), (255,0,0), 3)  # Z axis (Blue)
     
     return frame
 
@@ -95,14 +95,14 @@ def draw_axis(frame, rvec, tvec):
 
 def display_results(frame, H, corners, rvec, tvec, board_size=(7, 7), output_size=(700, 700)):
     """
-    Affiche l'image originale avec les coins détectés, les axes 3D et l'image transformée.
+    Display the original image with detected corners, 3D axes and the transformed image.
     """
-    # Dessiner les coins et les axes
+    # Draw the corners and the axes
     frame_with_corners = frame.copy()
     cv2.drawChessboardCorners(frame_with_corners, board_size, corners, True)
     frame_with_corners = draw_axis(frame_with_corners, rvec, tvec)
     
-    # Appliquer la transformation homographique
+    # Apply the homography transformation
     warped_frame = cv2.warpPerspective(frame, H, output_size)
     
     return frame_with_corners, warped_frame
@@ -111,7 +111,7 @@ def display_results(frame, H, corners, rvec, tvec, board_size=(7, 7), output_siz
 
 
 if __name__ == "__main__":
-    # Charger et traiter la vidéo
+    # Load and process the video
     video_path = 'videos/moving_game.MOV'
     cap = cv2.VideoCapture(video_path)
     
@@ -127,7 +127,7 @@ if __name__ == "__main__":
         if not ret:
             break
 
-        # Calculer l'homographie et la pose
+        # Calculate homography and pose
         H, corners, objp = compute_homography(frame)
         
         if H is not None:
@@ -136,17 +136,16 @@ if __name__ == "__main__":
             rvec, tvec = compute_pose(objp, corners)
 
 
-            # Afficher les résultats
+            # Display results
             new_frame, warped_frame = display_results(frame, H, corners, rvec, tvec)
 
 
-            # Dessiner les points source
+            # Draw source points
             # for point in src_points:
             #     cv2.circle(new_frame, tuple(map(int, point)), 10, (0, 0, 255), -1)
 
 
-            # Redimensionner pour l'affichage
-            # 
+            # Resize for display
             
             frame_resized = resize_frame(new_frame, 800)
             warped_resized = resize_frame(warped_frame, 800)

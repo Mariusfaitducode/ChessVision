@@ -14,7 +14,7 @@ def find_corners_with_timeout(gray, chessboard_size, flags):
     thread.daemon = True
     thread.start()
     
-    # Attendre max 0.05 secondes
+    # Wait max 0.05 seconds
     thread.join(timeout=0.05)
     
     if result_queue.empty():

@@ -119,16 +119,16 @@ def undistort_frame(frame, camera_matrix, dist_coeffs):
 
 
 if __name__ == "__main__":
-    # Paramètres de calibration
-    video_path = 'videos/moving_game.MOV'  # Remplacez par le chemin de votre vidéo
+    # Calibration settings
+    video_path = 'videos/moving_game.MOV'  # Replace with your video path
     chessboard_size = (7, 7)
     frame_interval = 1000
 
     # * Calibration
     calibrate_camera_from_video(video_path, chessboard_size, frame_interval=frame_interval, show_process=True)
 
-    # * Récupération des résultats de la calibration
-    # Charger les résultats de la calibration
+    # * Get calibration results
+    # Load calibration results
     calibration_results = np.load('camera_calibration_results.npz')
     camera_matrix = calibration_results['cameraMatrix']
     dist_coeffs = calibration_results['distCoeffs']
@@ -137,28 +137,28 @@ if __name__ == "__main__":
         print("Camera matrix:\n", camera_matrix)
         print("Distortion coefficients:", dist_coeffs.ravel())
 
-        # Test de la correction de distorsion sur une frame de la vidéo
+        # Test distortion correction on a frame of the video
         cap = cv2.VideoCapture(video_path)
         # ret, frame = cap.read()
 
         while True:
 
-            # Lire la frame
+            # Read the frame
             ret, frame = cap.read()
             if not ret:
                 break
 
             undistorted_frame = undistort_frame(frame, camera_matrix, dist_coeffs)
 
-            # Redimensionner l'image pour l'affichage
-            display_width = 800  # Vous pouvez ajuster cette valeur selon vos besoins
+            # Resize the image for display
+            display_width = 800  # You can adjust this value as needed
             aspect_ratio = frame.shape[1] / frame.shape[0]
             display_height = int(display_width / aspect_ratio)
 
             undistorted_frame = cv2.resize(undistorted_frame, (display_width, display_height))
             frame = cv2.resize(frame, (display_width, display_height))
 
-            # Afficher l'image traitée
+            # Display the processed image
             cv2.imshow('Original Frame', frame)
             cv2.imshow('Undistorted Frame', undistorted_frame)
 

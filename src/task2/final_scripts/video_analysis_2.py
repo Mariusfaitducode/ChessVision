@@ -187,6 +187,3 @@ if __name__ == "__main__":
     video_path = 'videos/moving_game.mov'
 
     process_video(video_path)
-
-# Note: Assurez-vous que les fonctions importées (detect_stickers, detect_chessboard, calibrate_camera)
-# sont adaptées pour fonctionner sur une seule image à la fois.

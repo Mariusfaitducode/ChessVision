@@ -65,14 +65,6 @@ def detect_chessboard_corners_extremities(img, corners, chessboard_size = (7, 7)
         bottom_right = corners[-1][0]
         bottom_left = corners[-chessboard_size[0]][0]
 
-        # Retrouver les 4 points extremities de l'échiquier
-        # square_size = np.linalg.norm(cornersRefined[0] - cornersRefined[chessboard_size[0]])
-
-        # top_left -= [square_size, square_size]
-        # top_right += [square_size, square_size]
-        # bottom_right += [square_size, square_size]
-        # bottom_left -= [square_size, square_size]
-
         # TODO : clean this code
 
         a1 = top_left + (corners[0][0] - corners[1][0]) + (
@@ -92,58 +84,54 @@ def detect_chessboard_corners_extremities(img, corners, chessboard_size = (7, 7)
         return None
     
 
-    
-
-
-
 def refine_corners(img, chessboard_corners, search_radius=20):
     """
     Polishes the corners to improve their accuracy.
     """
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Appliquer un flou gaussien pour réduire le bruit
+    # Apply Gaussian blur to reduce noise
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
     # * Détecter les coins avec l'algorithme de Harris
     corners = cv2.cornerHarris(blurred, blockSize=2, ksize=3, k=0.04)
 
-    # # Normaliser les coins pour une meilleure visualisation
+    # # Normalize corners for better visualization
     # corners_normalized = cv2.normalize(corners, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
-    # # Dilater les coins pour les rendre plus visibles
+    # Dilate corners to make them more visible
     corners_dilated = cv2.dilate(corners, None)
 
 
-    # # Seuiller pour obtenir uniquement les coins les plus forts
+    # Threshold to get only the strongest corners
     threshold = 0.001 * corners_dilated.max()
     corner_points = np.where(corners_dilated > threshold)
 
 
-    # Trouver les coins les plus proches pour chaque coin de l'échiquier
+    # Find the closest corners for each chessboard corner
     refined_corners = []
     for corner in chessboard_corners:
-        # Convertir le coin en coordonnées entières
+        # Convert the corner to integer coordinates
         corner_int = tuple(map(int, corner))
 
-        # Définir une région de recherche autour du coin
+        # Define a search region around the corner
         y_min = max(0, corner_int[1] - search_radius)
         y_max = min(img.shape[0], corner_int[1] + search_radius)
         x_min = max(0, corner_int[0] - search_radius)
         x_max = min(img.shape[1], corner_int[0] + search_radius)
 
-        # Trouver tous les coins dans la région de recherche
+        # Find all corners in the search region
         region_corners = np.argwhere(corners_dilated[y_min:y_max, x_min:x_max] > threshold)
 
         if len(region_corners) > 0:
-            # Calculer les distances au coin original
+            # Calculate distances to the original corner
             distances = np.sum((region_corners - [corner_int[1] - y_min, corner_int[0] - x_min]) ** 2, axis=1)
 
-            # Trouver le coin le plus proche
+            # Find the closest corner
             closest_corner = region_corners[np.argmin(distances)]
             refined_corner = (x_min + closest_corner[1], y_min + closest_corner[0])
         else:
-            # Si aucun coin n'est trouvé, garder le coin original
+            # If no corner is found, keep the original corner
             refined_corner = corner_int
 
         refined_corners.append(refined_corner)
@@ -223,13 +211,13 @@ def draw_labeled_chessboard(img, labeled_corners):
     return img
 
 
-# Cette partie ne s'exécutera que si le script est exécuté directement (pas importé)
+# This part will only run if the script is executed directly (not imported)
 if __name__ == "__main__":
-    # Tester la fonction avec une seule image
+    # Test the function with a single image
     img = cv2.imread('src/calibration_images/img1.png')
 
-    # Charger une vidéo de test
-    video_path = 'videos/moving_game.MOV'  # Remplacez par le chemin de votre vidéo
+    # Load a test video
+    video_path = 'videos/moving_game.MOV'  # Replace with the path to your video
     cap = cv2.VideoCapture(video_path)
 
     frame_interval = 100
