@@ -165,6 +165,12 @@ def get_warped_image(img, labeled_corners):
     return warped
 
 
+def draw_corners(img, corners):
+    corner_img = img.copy()
+    for corner in corners:
+        cv2.circle(corner_img, tuple(map(int, corner)), 5, (0, 255, 0), -1)
+    return corner_img
+
 def draw_refined_corners(img, original_corners, refined_corners, search_radius=20):
     corner_img = img.copy()
 

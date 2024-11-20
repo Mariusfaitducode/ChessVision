@@ -81,8 +81,6 @@ def detect_stickers(img, corners, distance_threshold=150):
         # sorted_corners = sorted(corners, key=lambda corner: np.linalg.norm(np.array([cX, cY]) - np.array(corner)))
         pink_stickers = (int(cX), int(cY), int(radius))
 
-
-    
     #         break
 
     return blue_stickers, pink_stickers
@@ -91,13 +89,13 @@ def detect_stickers(img, corners, distance_threshold=150):
 def label_corners(corners, blue_sticker, pink_sticker):
 
     if blue_sticker is not None:
-        # Trouve a1 (plus proche du sticker bleu)
+        # Find a1 (closest to blue sticker)
         cX, cY, radius = blue_sticker
         sorted_corners = sorted(corners, key=lambda corner: np.linalg.norm(np.array([cX, cY]) - np.array(corner)))
         labeled_corners['a1'] = tuple(sorted_corners[0])
 
     if pink_sticker is not None:
-        # Trouve h1 (plus proche du sticker rose)
+        # Find h1 (closest to pink sticker)
         cX, cY, radius = pink_sticker
         sorted_corners = sorted(corners, key=lambda corner: np.linalg.norm(np.array([cX, cY]) - np.array(corner)))
         labeled_corners['a8'] = tuple(sorted_corners[0])
@@ -105,30 +103,30 @@ def label_corners(corners, blue_sticker, pink_sticker):
 
 
     if labeled_corners['a1'] is not None and labeled_corners['a8'] is not None:
-        # Calcule le vecteur de la rangée 1 (de a1 à h1)
-        rank_vector = np.array(labeled_corners['a8']) - np.array(labeled_corners['a1'])
+        # Calculate reference vector (a1 to a8)
+        reference_vector = np.array(labeled_corners['a8']) - np.array(labeled_corners['a1'])
         
-        # Trouve les deux coins restants (les plus éloignés de la rangée 1)
+        # Find the two remaining corners
         remaining_corners = [corner for corner in corners 
                            if corner != labeled_corners['a1'] and corner != labeled_corners['a8']]
         
-        # Trie les coins restants par leur distance perpendiculaire à la rangée 1
-        def perpendicular_distance(point):
+        # Sort the remaining corners by the angle formed with the reference vector
+        def angle_with_reference(point):
             point_vector = np.array(point) - np.array(labeled_corners['a1'])
-            projection = np.dot(point_vector, rank_vector) / np.dot(rank_vector, rank_vector)
-            perpendicular = point_vector - projection * rank_vector
-            return np.linalg.norm(perpendicular)
+            # Calculate the angle between the vectors in radians
+            cos_angle = np.dot(point_vector, reference_vector) / (np.linalg.norm(point_vector) * np.linalg.norm(reference_vector))
+            # Clip to avoid rounding errors
+            cos_angle = np.clip(cos_angle, -1.0, 1.0)
+            angle = np.arccos(cos_angle)
+            return angle
         
-        far_corners = sorted(remaining_corners, key=perpendicular_distance, reverse=True)
+        angle_corners = sorted(remaining_corners, key=angle_with_reference, reverse=True)
         
-        # Détermine a8 et h8 en fonction de leur position relative à a1 et h1
-        h1_candidate = far_corners[0]
-        h8_candidate = far_corners[1]
+        # Determine a8 and h8 based on their relative position to a1 and h1
+        h1_candidate = angle_corners[1]
+        h8_candidate = angle_corners[0]
         
-        # Si h8 est plus proche de h1 que de a1, on inverse
-        if (np.linalg.norm(np.array(h8_candidate) - np.array(labeled_corners['a8'])) <
-            np.linalg.norm(np.array(h1_candidate) - np.array(labeled_corners['a8']))):
-            h1_candidate, h8_candidate = h8_candidate, h1_candidate
+        # If h8 is closer to h1 than to a1, invert them
             
         labeled_corners['h8'] = tuple(h1_candidate)
         labeled_corners['h1'] = tuple(h8_candidate)
@@ -153,15 +151,5 @@ def draw_stickers(img, blue_stickers, pink_stickers):
         cX, cY, radius = pink_stickers  # Déballage du tuple
         cv2.circle(img, (cX, cY), radius, (255, 0, 255), 2)  # Contour du sticker
         cv2.circle(img, (cX, cY), 3, (0, 255, 0), -1)  # Centre du sticker
-
-
-    # for (cX, cY, radius) in blue_stickers:
-    #     cv2.circle(img, (cX, cY), radius, (255, 0, 0), 2)  # Blue outline
-    #     cv2.circle(img, (cX, cY), 3, (0, 255, 0), -1)  # Center in green
-
-    # # Draw pink stickers
-    # for (cX, cY, radius) in pink_stickers:
-    #     cv2.circle(img, (cX, cY), radius, (255, 0, 255), 2)  # Pink outline
-    #     cv2.circle(img, (cX, cY), 3, (0, 255, 0), -1)  # Center in green
 
     return img

@@ -30,6 +30,7 @@ def process_video(video_path):
     # Initialize tracking variables
     last_frame_corners_extremities = None
     frame_count = 0
+    frame_interval = 10
     
     # Cache to store the last valid detections
     cache = {
@@ -48,8 +49,17 @@ def process_video(video_path):
     # last_frame = None
 
     while True:
+
+        frame_count += 1
+
+        if frame_count % frame_interval != 0:
+            continue
+
+
         # Read frame
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_count)
         ret, frame = cap.read()
+        
         if not ret:
             break
         
@@ -73,9 +83,20 @@ def process_video(video_path):
         elif chessboard_corners_extremities is None or any(corner is None for corner in chessboard_corners_extremities) and cache['chessboard_corners_extremities'] is not None:
             chessboard_corners_extremities = cache['chessboard_corners_extremities']
             radius = 40  # Increase search radius when using last known corners
+            continue
         
         # Refine corner positions
-        chessboard_corners_refined = refine_corners(frame, chessboard_corners_extremities, search_radius=radius)
+        # chessboard_corners_refined = refine_corners(frame, chessboard_corners_extremities, search_radius=radius)
+
+        chessboard_corners_refined = []
+
+        for corner in chessboard_corners_extremities:
+            chessboard_corners_refined.append(tuple(corner))
+
+        # print(chessboard_corners_refined)
+        # print(refine_corners(frame, chessboard_corners_extremities, search_radius=radius))
+
+        # chessboard_corners_refined = chessboard_corners_extremities
 
         cache['chessboard_corners_extremities'] = chessboard_corners_refined
 
@@ -86,6 +107,8 @@ def process_video(video_path):
         
         # Detect colored stickers and label corners
         blue_stickers, pink_stickers = detect_stickers(frame, chessboard_corners_refined)
+
+        # TODO : label corners without using stickers
 
         # labeled_corners = None
         labeled_corners = label_corners(chessboard_corners_refined, blue_stickers, pink_stickers)
@@ -132,11 +155,9 @@ def process_video(video_path):
             warped_frame = get_warped_image(frame, cache['labeled_corners'])
             frame = draw_labeled_chessboard(frame, cache['labeled_corners'])
 
-
         if cache['chessboard_corners_extremities'] is not None and chessboard_corners_refined is not None:
-            frame = draw_refined_corners(frame, cache['chessboard_corners_extremities'], chessboard_corners_refined, search_radius=radius)
-
-        
+            # frame = draw_refined_corners(frame, cache['chessboard_corners_extremities'], chessboard_corners_refined, search_radius=radius)
+            frame = draw_corners(frame, chessboard_corners_refined)
 
         if cache['blue_stickers'] is not None and cache['pink_stickers'] is not None:
             frame = draw_stickers(frame, cache['blue_stickers'], cache['pink_stickers'])
@@ -176,7 +197,7 @@ def process_video(video_path):
                 cv2.imwrite(os.path.join('images_1', warped_frame_name), warped_frame)
                 print(f"Saved: {warped_frame_name}")
 
-        frame_count += 1
+        # frame_count += 1
     
     # Release resources
     cap.release()
