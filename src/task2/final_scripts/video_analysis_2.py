@@ -7,7 +7,7 @@ import numpy as np
 # from camera_calibration import calibrate_camera, undistort_frame
 
 from corners_detection import *
-from stickers_detection import detect_stickers, draw_stickers
+from stickers_detection import detect_stickers, draw_stickers, label_corners
 from chessboard_homography import compute_homography, compute_pose, draw_axis
 
 from utils import resize_frame
@@ -85,12 +85,17 @@ def process_video(video_path):
         ###########################################
         
         # Detect colored stickers and label corners
-        blue_stickers, pink_stickers, labeled_corners = detect_stickers(frame, chessboard_corners_refined)
+        blue_stickers, pink_stickers = detect_stickers(frame, chessboard_corners_refined)
+
+        # labeled_corners = None
+        labeled_corners = label_corners(chessboard_corners_refined, blue_stickers, pink_stickers)
         
         # Update cache only with valid detections
         cache['blue_stickers'] = blue_stickers if blue_stickers else cache['blue_stickers']
         cache['pink_stickers'] = pink_stickers if pink_stickers else cache['pink_stickers']
-        cache['labeled_corners'] = labeled_corners if all(corner is not None for corner in labeled_corners.values()) else cache['labeled_corners']
+
+        if labeled_corners is not None:
+            cache['labeled_corners'] = labeled_corners if all(corner is not None for corner in labeled_corners.values()) else cache['labeled_corners']
 
 
         ###########################################
@@ -123,7 +128,7 @@ def process_video(video_path):
 
         warped_frame = None
 
-        if all(corner is not None for corner in cache['labeled_corners'].values()):
+        if cache['labeled_corners'] is not None and all(corner is not None for corner in cache['labeled_corners'].values()):
             warped_frame = get_warped_image(frame, cache['labeled_corners'])
             frame = draw_labeled_chessboard(frame, cache['labeled_corners'])
 

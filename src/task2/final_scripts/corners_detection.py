@@ -9,12 +9,12 @@ from stickers_detection import detect_stickers, draw_stickers
 
 def detect_corners(img, chessboard_size = (7, 7)):
 
-    # Conversion de l'image en niveaux de gris pour simplifier le traitement
+    # Convert image to grayscale for easier processing
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
-    # Réduire la résolution de l'image pour accélérer la détection
+    # Reduce image resolution to speed up detection
     scale = 0.5
     small_gray = cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
 
@@ -29,9 +29,12 @@ def detect_corners(img, chessboard_size = (7, 7)):
     )
 
     if cornersFound:
-        # Ajuster les coordonnées des coins à l'échelle originale
+        # Adjust corner coordinates to the original scale
         corners = corners * (1.0 / scale)
         corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+
+        # Draw corners on the image
+        # cv2.drawChessboardCorners(img, chessboard_size, corners, True)
     else:
         corners = None
     return corners
@@ -42,11 +45,11 @@ def detect_corners(img, chessboard_size = (7, 7)):
 
 def detect_chessboard_corners_extremities(img, corners, chessboard_size = (7, 7)):
     """
-    Détecte l'échiquier dans l'image et retourne ses coins.
+    Detects the chessboard in the image and returns its corners.
 
-    :param img: Image d'entrée en couleur (BGR)
-    :param show_process: Booléen pour afficher les étapes intermédiaires
-    :return: Liste des coordonnées des coins [a1, a8, h8, h1] et contour approché, ou (None, None) si non détecté
+    :param img: Input image in color (BGR)
+    :param show_process: Boolean to display intermediate steps
+    :return: List of corner coordinates [a1, a8, h8, h1] and approximate contour, or (None, None) if not detected
     """
 
     objp = np.zeros((np.prod(chessboard_size), 3), np.float32)

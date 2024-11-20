@@ -4,6 +4,8 @@ import numpy as np
 
 sticker_history = {'blue': None, 'pink': None}
 labeled_corners = {'a1': None, 'a8': None, 'h8': None, 'h1': None}
+
+
 def detect_stickers(img, corners, distance_threshold=150):
     """
     Détecte les autocollants bleus et roses sur l'image.
@@ -43,109 +45,95 @@ def detect_stickers(img, corners, distance_threshold=150):
     if contours_blue:
         for c in contours_blue:
             ((cX, cY), radius) = cv2.minEnclosingCircle(c)
-            current_blue_sticker = (int(cX), int(cY))
+            current_blue_sticker = (int(cX), int(cY), int(radius))
             break
     else:
         if previous_blue_sticker is not None:
             blue_stickers = previous_blue_sticker
-            # sorted_corners = sorted(corners, key=lambda corner: np.linalg.norm(np.array(blue_stickers) - np.array(corner)))
-            # if 1000 <= frame_count <= 1300:
-            #     labeled_corners['h1'] = tuple(sorted_corners[2])
-            # else:
-            #     labeled_corners['h1'] = tuple(sorted_corners[1])
-            # labeled_corners['a1'] = tuple(sorted_corners[0])
+
+
     # Update sticker history or use previous position if no new sticker detected
     if current_blue_sticker is not None:
         if sticker_history['blue'] is not None:
             dist = np.linalg.norm(np.array(current_blue_sticker) - np.array(sticker_history['blue']))
             if dist>distance_threshold:
                 blue_stickers = sticker_history['blue']
-                # sorted_corners = sorted(corners,
-                #                         key=lambda corner: np.linalg.norm(np.array(blue_stickers) - np.array(corner)))
-                # if 1000 <= frame_count <= 1300:
-                #     labeled_corners['h1'] = tuple(sorted_corners[2])
-                # else:
-                #     labeled_corners['h1'] = tuple(sorted_corners[1])
-                # labeled_corners['a1'] = tuple(sorted_corners[0])
             else:
                 sticker_history['blue'] = current_blue_sticker
                 blue_stickers = current_blue_sticker
-                # sorted_corners = sorted(corners,
-                #                         key=lambda corner: np.linalg.norm(np.array(blue_stickers) - np.array(corner)))
-                # if 1000 <= frame_count <= 1300:
-                #     labeled_corners['h1'] = tuple(sorted_corners[2])
-                # else:
-                #     labeled_corners['h1'] = tuple(sorted_corners[1])
-                # labeled_corners['a1'] = tuple(sorted_corners[0])
         else:
             # No history; initialize with current
             blue_stickers = current_blue_sticker
             sticker_history['blue'] = current_blue_sticker
-            # sorted_corners = sorted(corners,
-            #                         key=lambda corner: np.linalg.norm(np.array(blue_stickers) - np.array(corner)))
-            # if 1000 <= frame_count <= 1300:
-            #     labeled_corners['h1'] = tuple(sorted_corners[2])
-            # else:
-            #     labeled_corners['h1'] = tuple(sorted_corners[1])
-            # labeled_corners['a1'] = tuple(sorted_corners[0])
     else:
         # If no new blue sticker is detected, use the last known one
         if sticker_history['blue'] is not None:
             blue_stickers = sticker_history['blue']
-            # sorted_corners = sorted(corners,
-            #                         key=lambda corner: np.linalg.norm(np.array(blue_stickers) - np.array(corner)))
-            # if 1000 <= frame_count <= 1300:
-            #     labeled_corners['h1'] = tuple(sorted_corners[2])
-            # else:
-            #     labeled_corners['h1'] = tuple(sorted_corners[1])
-            # labeled_corners['a1'] = tuple(sorted_corners[0])
 
-    if blue_stickers is not None:
-        sorted_corners = sorted(corners, key=lambda corner: np.linalg.norm(np.array(blue_stickers) - np.array(corner)))
-        motion_threshold = 100
-
-        # Measure motion
-        if labeled_corners['a1'] is not None:
-            motion = np.linalg.norm(np.array(sorted_corners[1]) - np.array(labeled_corners['h1']))
-            if motion > motion_threshold:
-                labeled_corners['a1'] = tuple(sorted_corners[0])
-                labeled_corners['h1'] = tuple(sorted_corners[2])
-            else:
-                labeled_corners['a1'] = tuple(sorted_corners[0])
-                labeled_corners['h1'] = tuple(sorted_corners[1])
-        else:
-            # No history; initialize
-            labeled_corners['a1'] = tuple(sorted_corners[0])
-            labeled_corners['h1'] = tuple(sorted_corners[1])
+    
 
     # Detect pink stickers
     contours_pink, _ = cv2.findContours(mask_pink, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     contours_pink = sorted(contours_pink, key=cv2.contourArea, reverse=True)
+
     if contours_pink:
-        for c in contours_pink:
-            ((cX, cY), radius) = cv2.minEnclosingCircle(c)
-            sorted_corners = sorted(corners, key=lambda corner: np.linalg.norm(np.array([cX, cY]) - np.array(corner)))
-            pink_stickers = (int(cX), int(cY), int(radius))
+        ((cX, cY), radius) = cv2.minEnclosingCircle(contours_pink[0])
+        # sorted_corners = sorted(corners, key=lambda corner: np.linalg.norm(np.array([cX, cY]) - np.array(corner)))
+        pink_stickers = (int(cX), int(cY), int(radius))
 
-            motion_threshold =150  # in pixels
 
-            if labeled_corners['a8'] is not None:
-                motion = np.linalg.norm(np.array(sorted_corners[1]) - np.array(labeled_corners['h8']))
-                if motion > motion_threshold:
-                    labeled_corners['a8'] = tuple(sorted_corners[0])
-                    labeled_corners['h8'] = tuple(sorted_corners[2])
-                else:
-                    labeled_corners['a8'] = tuple(sorted_corners[0])
-                    labeled_corners['h8'] = tuple(sorted_corners[1])
-            else:
-                labeled_corners['a8'] = tuple(sorted_corners[0])
-                labeled_corners['h8'] = tuple(sorted_corners[1])
+    
+    #         break
 
-            # labeled_corners['a8'] = tuple(sorted_corners[0])
-            # labeled_corners['h8'] = tuple(sorted_corners[1])
-            break
+    return blue_stickers, pink_stickers
 
-    return blue_stickers, pink_stickers, labeled_corners
+
+def label_corners(corners, blue_sticker, pink_sticker):
+
+    if blue_sticker is not None:
+        # Trouve a1 (plus proche du sticker bleu)
+        cX, cY, radius = blue_sticker
+        sorted_corners = sorted(corners, key=lambda corner: np.linalg.norm(np.array([cX, cY]) - np.array(corner)))
+        labeled_corners['a1'] = tuple(sorted_corners[0])
+
+    if pink_sticker is not None:
+        # Trouve h1 (plus proche du sticker rose)
+        cX, cY, radius = pink_sticker
+        sorted_corners = sorted(corners, key=lambda corner: np.linalg.norm(np.array([cX, cY]) - np.array(corner)))
+        labeled_corners['a8'] = tuple(sorted_corners[0])
+
+
+
+    if labeled_corners['a1'] is not None and labeled_corners['a8'] is not None:
+        # Calcule le vecteur de la rangée 1 (de a1 à h1)
+        rank_vector = np.array(labeled_corners['a8']) - np.array(labeled_corners['a1'])
+        
+        # Trouve les deux coins restants (les plus éloignés de la rangée 1)
+        remaining_corners = [corner for corner in corners 
+                           if corner != labeled_corners['a1'] and corner != labeled_corners['a8']]
+        
+        # Trie les coins restants par leur distance perpendiculaire à la rangée 1
+        def perpendicular_distance(point):
+            point_vector = np.array(point) - np.array(labeled_corners['a1'])
+            projection = np.dot(point_vector, rank_vector) / np.dot(rank_vector, rank_vector)
+            perpendicular = point_vector - projection * rank_vector
+            return np.linalg.norm(perpendicular)
+        
+        far_corners = sorted(remaining_corners, key=perpendicular_distance, reverse=True)
+        
+        # Détermine a8 et h8 en fonction de leur position relative à a1 et h1
+        h1_candidate = far_corners[0]
+        h8_candidate = far_corners[1]
+        
+        # Si h8 est plus proche de h1 que de a1, on inverse
+        if (np.linalg.norm(np.array(h8_candidate) - np.array(labeled_corners['a8'])) <
+            np.linalg.norm(np.array(h1_candidate) - np.array(labeled_corners['a8']))):
+            h1_candidate, h8_candidate = h8_candidate, h1_candidate
+            
+        labeled_corners['h8'] = tuple(h1_candidate)
+        labeled_corners['h1'] = tuple(h8_candidate)
+
+    return labeled_corners
 
 
 
@@ -156,8 +144,8 @@ def draw_stickers(img, blue_stickers, pink_stickers):
     
     # Dessiner les stickers si présents
     if blue_stickers is not None and len(blue_stickers) > 0:
-        cX, cY = blue_stickers  # Déballage du tuple
-        radius = 5
+        cX, cY, radius = blue_stickers  # Déballage du tuple
+        # radius = 5
         cv2.circle(img, (cX, cY), radius, (255, 0, 0), 2)  # Contour du sticker
         cv2.circle(img, (cX, cY), 3, (0, 255, 0), -1)  # Centre du sticker
 
