@@ -6,7 +6,7 @@ sticker_history = {'blue': None, 'pink': None}
 labeled_corners = {'a1': None, 'a8': None, 'h8': None, 'h1': None}
 
 
-def detect_stickers(img, corners, distance_threshold=150):
+def detect_stickers(img, distance_threshold=150):
     """
     Détecte les autocollants bleus et roses sur l'image.
     """

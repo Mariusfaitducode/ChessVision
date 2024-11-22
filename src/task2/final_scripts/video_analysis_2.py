@@ -48,6 +48,8 @@ def process_video(video_path):
     }
     # last_frame = None
 
+
+
     while True:
 
         frame_count += 1
@@ -59,9 +61,16 @@ def process_video(video_path):
         # Read frame
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_count)
         ret, frame = cap.read()
-        
+
         if not ret:
             break
+
+        ###########################################
+        # * STICKERS DETECTION
+        ###########################################
+
+        # Detect colored stickers and label corners
+        blue_stickers, pink_stickers = detect_stickers(frame)
         
         ###########################################
         # * DETECTION AND TRACKING
@@ -102,17 +111,17 @@ def process_video(video_path):
 
 
         ###########################################
-        # * STICKER DETECTION AND CORNER LABELING
+        # * CORNER LABELING
         ###########################################
         
-        # Detect colored stickers and label corners
-        blue_stickers, pink_stickers = detect_stickers(frame, chessboard_corners_refined)
+        
 
         # TODO : label corners without using stickers
 
         # labeled_corners = None
         labeled_corners = label_corners(chessboard_corners_refined, blue_stickers, pink_stickers)
-        
+        # labeled_corners = label_corners2(chessboard_corners_refined)
+
         # Update cache only with valid detections
         cache['blue_stickers'] = blue_stickers if blue_stickers else cache['blue_stickers']
         cache['pink_stickers'] = pink_stickers if pink_stickers else cache['pink_stickers']

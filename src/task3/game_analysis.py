@@ -1,10 +1,17 @@
 import cv2
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 
-def analyze_chess_board(image_path):
+from case_analysis import detect_if_case_is_occupied, detect_piece_color
+
+def analyze_chess_board(frame):
     # Read the image
-    img = cv2.imread(image_path)
+    img = frame
+
+    ###########################################
+    # * FILTERING
+    ###########################################
     
     # Convert to grayscale
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -14,6 +21,10 @@ def analyze_chess_board(image_path):
     
     # Edge detection using Canny
     edges = cv2.Canny(blurred, 50, 150)
+    
+    ###########################################
+    # * BOARD DATAS
+    ###########################################
     
     # Chessboard dimensions (8x8)
     rows, cols = 8, 8
@@ -26,12 +37,18 @@ def analyze_chess_board(image_path):
     square_w = width // cols
     
     # Dictionary to store results
-    occupied_squares = {}
+    square_results = {}
     square_stats = {}
     
     # Define margin (as percentage of square size)
     margin_percent = 0.15  # 15% margin
     
+    index = 0
+    
+    ###########################################
+    # * ANALYSIS
+    ###########################################
+
     # Process each square
     for i in range(rows):
         for j in range(cols):
@@ -40,7 +57,7 @@ def analyze_chess_board(image_path):
             left = j * square_w
             bottom = (i + 1) * square_h
             right = (j + 1) * square_w
-            
+
             # Calculate margins in pixels
             margin_h = int(square_h * margin_percent)
             margin_w = int(square_w * margin_percent)
@@ -51,42 +68,66 @@ def analyze_chess_board(image_path):
             inner_bottom = bottom - margin_h
             inner_right = right - margin_w
             
-            # Extract square region for edge detection (inner area only)
-            square_edges = edges[inner_top:inner_bottom, inner_left:inner_right]
+            is_occupied, edge_percentage = detect_if_case_is_occupied(edges, inner_top, inner_left, inner_bottom, inner_right)
+
+            piece_color = None
+            piece_peak = None
             
-            # Count edge pixels in inner area
-            edge_count = np.count_nonzero(square_edges)
-            
-            # Calculate edge pixel percentage
-            # Note: using inner area for calculation
-            inner_area = (inner_bottom - inner_top) * (inner_right - inner_left)
-            edge_percentage = (edge_count / inner_area) * 100
-            
-            # Threshold to determine if square is occupied
-            edge_threshold = 1  # Adjust this threshold as needed
-            
-            # A square is considered occupied if it contains enough edges
-            is_occupied = edge_percentage > edge_threshold
-            
-            # Store results (chess notation: A1, B1, etc.)
-            square_name = f"{chr(65+j)}{8-i}"
-            occupied_squares[square_name] = is_occupied
+            if is_occupied:
+                # TODO : Detect piece color
+
+                # Extract the inner square region for color analysis
+                piece_region = gray[inner_top:inner_bottom, inner_left:inner_right]
+                
+                # Calculate average brightness of the region
+                avg_brightness = np.mean(piece_region)
+                
+                # Determine if square is dark or light based on position
+                is_dark_square = (i + j) % 2 == 0
+
+
+                # hist = cv2.calcHist([piece_region], [0], None, [256], [0, 256])
+
+                # print(f"{chr(72-i)}{8-j} : is_dark_square = {is_dark_square}")
+
+                # plt.hist(piece_region.ravel(), bins=256, range=(0, 255))
+                # plt.show()
+
+                
+                piece_color, piece_peak = detect_piece_color(piece_region, is_dark_square)
+                
+
+            # square_name = f"{chr(65+j)}{8-i}"
+            square_name = f"{chr(72-i)}{8-j}"
+
+
+            square_results[square_name] = {
+                'is_occupied': is_occupied,
+                'piece_color': piece_color
+            }
             square_stats[square_name] = {
-                'edge_percentage': edge_percentage
+                'edge_percentage': edge_percentage,
+                'index': index,
+                'name': square_name,
+                'piece_peak': piece_peak
             }
             
+            index += 1
+
             # For visualization, also draw the analyzed inner area
             
-            cv2.rectangle(img, 
+            img = cv2.rectangle(img, 
                         (inner_left, inner_top), 
                         (inner_right, inner_bottom), 
                         (128, 128, 128), 1)  # Gray rectangle to show analyzed area
     
-    return occupied_squares, img, {
+    return square_results, img, {
         'gray': gray,
         'blurred': blurred,
-        'edges': edges
+        'edges': edges,
     }, square_stats
+
+
 
 def analyze_all_images(folder_path):
     results = {}
@@ -94,10 +135,14 @@ def analyze_all_images(folder_path):
     # Process all images in folder
     for filename in os.listdir(folder_path):
         if filename.endswith(('.png', '.jpg', '.jpeg')):
+
             image_path = os.path.join(folder_path, filename)
-            squares, img, filtered_images, stats = analyze_chess_board(image_path)
+
+            frame = cv2.imread(image_path)
+
+            square_results, img, filtered_images, stats = analyze_chess_board(frame)
             results[filename] = {
-                'squares': squares,
+                'square_results': square_results,
                 'image': img,
                 'filtered': filtered_images,
                 'stats': stats
@@ -106,7 +151,7 @@ def analyze_all_images(folder_path):
     # Interactive visualization
     image_names = list(results.keys())
     current_idx = 0
-    current_view = 'edges'  # 'original', 'gray', 'blurred', 'edges'
+    current_view = 'original'  # 'original', 'gray', 'blurred', 'edges'
     
     while True:
         current_image = image_names[current_idx]
@@ -131,19 +176,48 @@ def analyze_all_images(folder_path):
                 bottom = (i + 1) * square_h
                 right = (j + 1) * square_w
                 
-                square_name = f"{chr(65+j)}{8-i}"
-                is_occupied = result['squares'][square_name]
+                square_name = f"{chr(72-i)}{8-j}"
+
+                square_result = result['square_results'][square_name]
+
+                is_occupied = square_result['is_occupied']
+                piece_color = square_result['piece_color']
+                
                 stats = result['stats'][square_name]
                 
                 # Green for occupied squares, red for empty ones
                 color = (0, 255, 0) if is_occupied else (0, 0, 255)
                 cv2.rectangle(img_display, (left, top), (right, bottom), color, 2)
                 
-                # Add edge percentage text
-                text = f"edges:{stats['edge_percentage']:.1f}%"
+                piece_peak = stats['piece_peak']
+
+                # Addtext
+                text = f"{piece_color} - {piece_peak}"
                 cv2.putText(img_display, text, (left + 5, top + 20),
-                          cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+                          cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2)
+                
+
+        # Retrieve datas
+
+        game_state = np.zeros((8, 8), dtype=int)
+
+        for i in range(8):
+            for j in range(8):
+                square_name = f"{chr(65+j)}{8-i}"
+                square_result = result['square_results'][square_name]
+                is_occupied = square_result['is_occupied']
+                game_state[i, j] = is_occupied
+
+        print(game_state)
+
         
+                
+
+        ###########################################
+        # * DISPLAY
+        ###########################################
+        
+
         # Display image
         cv2.imshow('Chess Analysis', img_display)
         print(f"\nAnalyzing {current_image} - Mode: {current_view}")
@@ -162,6 +236,7 @@ def analyze_all_images(folder_path):
     
     cv2.destroyAllWindows()
     return results
+
 
 if __name__ == "__main__":
     folder_path = "images_results/warped_images"
