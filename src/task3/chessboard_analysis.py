@@ -75,7 +75,6 @@ def analyze_chess_board(frame):
             piece_peak = None
             
             if is_occupied:
-                # TODO : Detect piece color
 
                 # Extract the inner square region for color analysis
                 piece_region = gray[inner_top:inner_bottom, inner_left:inner_right]
@@ -85,15 +84,6 @@ def analyze_chess_board(frame):
                 
                 # Determine if square is dark or light based on position
                 is_dark_square = (i + j) % 2 == 0
-
-
-                # hist = cv2.calcHist([piece_region], [0], None, [256], [0, 256])
-
-                # print(f"{chr(72-i)}{8-j} : is_dark_square = {is_dark_square}")
-
-                # plt.hist(piece_region.ravel(), bins=256, range=(0, 255))
-                # plt.show()
-
                 
                 piece_color, piece_peak = detect_piece_color(piece_region, is_dark_square)
                 
