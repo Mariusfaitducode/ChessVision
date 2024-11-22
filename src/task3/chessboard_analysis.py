@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import json
 
 from case_analysis import detect_if_case_is_occupied, detect_piece_color
 
@@ -152,7 +153,56 @@ def analyze_all_images(folder_path):
     image_names = list(results.keys())
     current_idx = 0
     current_view = 'original'  # 'original', 'gray', 'blurred', 'edges'
-    
+
+    data = {}
+    data['game_states'] = []
+
+    ###########################################
+    # * RETRIEVE GAME STATES
+    ###########################################
+
+    for i in range(len(image_names)):
+        # data['game_states'].append(None)
+
+        current_image = image_names[i]
+        result = results[current_image]
+        
+
+        # Retrieve datas
+
+        game_state = np.zeros((8, 8), dtype=int)
+
+        for i in range(8):
+            for j in range(8):
+                square_name = f"{chr(65+j)}{8-i}"
+                square_result = result['square_results'][square_name]
+                is_occupied = square_result['is_occupied']
+
+                piece_color = square_result['piece_color']
+                if is_occupied and piece_color is not None:
+
+                    if piece_color == 'black':
+                        game_state[i, j] = -7
+                    else:
+                        game_state[i, j] = 7
+
+        print(game_state)
+
+        state = {
+            'frame': current_image,
+            'gs': game_state.tolist()
+        }
+
+        data['game_states'].append(state)
+
+    with open('game_state.json', 'w') as f:
+        json.dump(data, f)
+
+
+    ###########################################
+    # * VISUALIZE RESULTS
+    ###########################################
+
     while True:
         current_image = image_names[current_idx]
         result = results[current_image]
@@ -197,18 +247,10 @@ def analyze_all_images(folder_path):
                           cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2)
                 
 
-        # Retrieve datas
+        
 
-        game_state = np.zeros((8, 8), dtype=int)
-
-        for i in range(8):
-            for j in range(8):
-                square_name = f"{chr(65+j)}{8-i}"
-                square_result = result['square_results'][square_name]
-                is_occupied = square_result['is_occupied']
-                game_state[i, j] = is_occupied
-
-        print(game_state)
+        # with open('game_state.json', 'w') as f:
+        #     json.dump(state, f)
 
         
                 
