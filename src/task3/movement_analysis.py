@@ -27,6 +27,38 @@ def verify_movement(prev_state, initial_pos, final_pos):
     if final_pos in rook_movements:
         print('rook move verified')
         valid_movements.append('rook')
+
+    knight_movements = knight_movement(initial_pos, prev_state)
+
+    print('knight_movements', knight_movements)
+
+    if final_pos in knight_movements:
+        print('knight move verified')
+        valid_movements.append('knight')
+
+    bishop_movements = bishop_movement(initial_pos, prev_state)
+
+    print('bishop_movements', bishop_movements)
+
+    if final_pos in bishop_movements:
+        print('bishop move verified')
+        valid_movements.append('bishop')
+
+    queen_movements = queen_movement(initial_pos, prev_state)
+
+    print('queen_movements', queen_movements)
+
+    if final_pos in queen_movements:
+        print('queen move verified')
+        valid_movements.append('queen')
+
+    king_movements = king_movement(initial_pos, prev_state)
+
+    print('king_movements', king_movements)
+
+    if final_pos in king_movements:
+        print('king move verified')
+        valid_movements.append('king')
     
     return valid_movements
 
@@ -110,58 +142,36 @@ def analyze_move(prev_state, curr_state):
 
         print('initial_final_value', initial_final_value)
 
-        from_square = f"{chr(97 + initial_pos[1])}{8 - initial_pos[0]}"
-        to_square = f"{chr(97 + final_pos[1])}{8 - final_pos[0]}"
+        # from_square = f"{chr(97 + initial_pos[1])}{8 - initial_pos[0]}"
+        # to_square = f"{chr(97 + final_pos[1])}{8 - final_pos[0]}"
 
         # Simple move
         if initial_final_value == 0:
+            movement = 'move'
+        else:
+            movement = 'capture'
 
-            move = f"{from_square} -> {to_square}"
 
-            print('move', move)
+        valid_movements = verify_movement(prev_state, initial_pos, final_pos)
 
-            # TODO: Check if the move is valid
+        print('valid_movements', valid_movements)
 
-            valid = verify_movement(prev_state, initial_pos, final_pos)
-
-            # new_gs = modify_game_state(prev_state, move)
-
-            # diff = curr_state - new_gs
-            # changes = np.where(diff != 0)
-
-            # print('valid game state', len(changes))
+        if len(valid_movements) > 0:
 
             return {
                 'valid': True,
-                'move_type': 'move',
+                'move_type': movement,
                 'from_pos': initial_pos,
                 'to_pos': final_pos,
                 'piece': moving_piece,
             }
-
-        # Capture
+        
         else:
-
-            move = f"{from_square} x {to_square}"
-
-            print('move', move)
-
-            # new_gs = modify_game_state(prev_state, move)
-
-            # diff = curr_state - new_gs
-            # changes = np.where(diff != 0)
-
-            # print('valid game state', len(changes))
-
             return {
-                'valid': True,
-                'move_type': 'capture',
-                'from_pos': initial_pos,
-                'to_pos': final_pos,
-                'piece': moving_piece
+                'valid': False,
+                'move_type': 'invalid',
+                'message': 'No piece found matching the movement'
             }
-
-            pass
     
     return {
         'valid': False,

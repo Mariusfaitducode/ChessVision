@@ -151,6 +151,8 @@ def analyze_all_images(folder_path):
     # * RETRIEVE GAME STATES
     ###########################################
 
+    last_game_state = None
+
     for i in range(len(image_names)):
         # data['game_states'].append(None)
 
@@ -169,12 +171,18 @@ def analyze_all_images(folder_path):
                 is_occupied = square_result['is_occupied']
 
                 piece_color = square_result['piece_color']
-                if is_occupied and piece_color is not None:
 
-                    if piece_color == 'black':
-                        game_state[i, j] = -7
-                    else:
-                        game_state[i, j] = 7
+                if is_occupied is True:
+
+                    if piece_color is not None:
+
+                        if piece_color == 'black':
+                            game_state[i, j] = -7
+                        else:
+                            game_state[i, j] = 7
+
+                    elif last_game_state is not None:
+                        game_state[i, j] = last_game_state[i, j]
 
         print(game_state)
 
@@ -184,6 +192,8 @@ def analyze_all_images(folder_path):
         }
 
         data['game_states'].append(state)
+
+        last_game_state = game_state
 
     with open('game_state.json', 'w') as f:
         json.dump(data, f)
