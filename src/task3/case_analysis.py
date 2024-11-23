@@ -132,10 +132,10 @@ def detect_piece_color(piece_region, is_dark_square):
     #             return 'white'
             
     if abs(piece_peak - 130) < 40:
-        return 'black', piece_peak
+        return 'white', piece_peak
     
     # Pièce blanche (pic autour de 210)
     elif abs(piece_peak - 210) < 30:
-        return 'white', piece_peak
+        return 'black', piece_peak
     
     return None, piece_peak
