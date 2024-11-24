@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import json
 
 from case_analysis import detect_if_case_is_occupied, detect_piece_color
+from case_color_analysis import classify_pieces
 
 def analyze_chess_board(frame):
     # Read the image
@@ -50,9 +51,14 @@ def analyze_chess_board(frame):
     # * ANALYSIS
     ###########################################
 
+    occupied_squares = []
+
     # Process each square
     for i in range(rows):
         for j in range(cols):
+
+            square_name = f"{chr(72-i)}{8-j}"
+
             # Full square coordinates
             top = i * square_h
             left = j * square_w
@@ -79,18 +85,13 @@ def analyze_chess_board(frame):
                 # Extract the inner square region for color analysis
                 piece_region = gray[inner_top:inner_bottom, inner_left:inner_right]
                 
-                # Calculate average brightness of the region
-                avg_brightness = np.mean(piece_region)
-                
                 # Determine if square is dark or light based on position
                 is_dark_square = (i + j) % 2 == 0
-                
-                piece_color, piece_peak = detect_piece_color(piece_region, is_dark_square)
-                
 
+                occupied_squares.append((piece_region, is_dark_square, square_name))
+                
+                # piece_color = detect_piece_color(piece_region, is_dark_square)
             # square_name = f"{chr(65+j)}{8-i}"
-            square_name = f"{chr(72-i)}{8-j}"
-
 
             square_results[square_name] = {
                 'is_occupied': is_occupied,
@@ -111,6 +112,13 @@ def analyze_chess_board(frame):
                         (inner_left, inner_top), 
                         (inner_right, inner_bottom), 
                         (128, 128, 128), 1)  # Gray rectangle to show analyzed area
+            
+    piece_colors = classify_pieces(occupied_squares, debug=False)
+    
+    # Mettre à jour square_results avec les couleurs des pièces
+    for square_name, piece_info in square_results.items():
+        if piece_info['is_occupied']:
+            piece_info['piece_color'] = piece_colors.get(square_name, None)
     
     return square_results, img, {
         'gray': gray,
@@ -241,9 +249,10 @@ def analyze_all_images(folder_path):
                 
                 piece_peak = stats['piece_peak']
 
-                # Addtext
-                text = f"{piece_color} - {piece_peak}"
-                cv2.putText(img_display, text, (left + 5, top + 20),
+                if piece_color is not None:
+                    # Addtext
+                    text = f"{piece_color}"
+                    cv2.putText(img_display, text, (left + 5, top + 20),
                           cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2)
                 
 
