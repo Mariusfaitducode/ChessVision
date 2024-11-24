@@ -10,6 +10,8 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
     valid_movements = []
 
+    color = prev_state[initial_pos]
+
     pawn_movements = pawn_movement(initial_pos, prev_state)
 
     print('pawn_movements', pawn_movements)
@@ -17,7 +19,11 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
     if final_pos in pawn_movements:
         print('pawn move verified')
-        valid_movements.append('pawn')
+
+        if color > 0:
+            valid_movements.append('white_pawn')
+        else:
+            valid_movements.append('black_pawn')
 
 
     rook_movements = rook_movement(initial_pos, prev_state)
@@ -26,7 +32,11 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
     if final_pos in rook_movements:
         print('rook move verified')
-        valid_movements.append('rook')
+
+        if color > 0:
+            valid_movements.append('white_rook')
+        else:
+            valid_movements.append('black_rook')
 
     knight_movements = knight_movement(initial_pos, prev_state)
 
@@ -34,7 +44,11 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
     if final_pos in knight_movements:
         print('knight move verified')
-        valid_movements.append('knight')
+
+        if color > 0:
+            valid_movements.append('white_knight')
+        else:
+            valid_movements.append('black_knight')
 
     bishop_movements = bishop_movement(initial_pos, prev_state)
 
@@ -42,7 +56,11 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
     if final_pos in bishop_movements:
         print('bishop move verified')
-        valid_movements.append('bishop')
+
+        if color > 0:
+            valid_movements.append('white_bishop')
+        else:
+            valid_movements.append('black_bishop')
 
     queen_movements = queen_movement(initial_pos, prev_state)
 
@@ -50,7 +68,11 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
     if final_pos in queen_movements:
         print('queen move verified')
-        valid_movements.append('queen')
+
+        if color > 0:
+            valid_movements.append('white_queen')
+        else:
+            valid_movements.append('black_queen')
 
     king_movements = king_movement(initial_pos, prev_state)
 
@@ -58,7 +80,11 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
     if final_pos in king_movements:
         print('king move verified')
-        valid_movements.append('king')
+
+        if color > 0:
+            valid_movements.append('white_king')
+        else:
+            valid_movements.append('black_king')
     
     return valid_movements
 
@@ -93,7 +119,7 @@ def analyze_move(prev_state, curr_state):
     diff = curr_state - prev_state
     changes = np.where(diff != 0)
 
-    print('changes', changes)
+    # print('changes', changes)
     
     # Get positions where changes occurred
     positions = list(zip(changes[0], changes[1]))
@@ -102,12 +128,13 @@ def analyze_move(prev_state, curr_state):
 
     
     # If no changes or more than 2 positions changed, invalid move
-    if len(positions) == 0 :
+    if len(positions) < 2 :
         return {
             'valid': False,
             'move_type': 'invalid',
             'message': 'No changes detected'
         }
+
     
     elif len(positions) > 2:
         return {
@@ -152,11 +179,11 @@ def analyze_move(prev_state, curr_state):
             movement = 'capture'
 
 
-        valid_movements = verify_movement(prev_state, initial_pos, final_pos)
+        valid_pieces = verify_movement(prev_state, initial_pos, final_pos)
 
-        print('valid_movements', valid_movements)
+        print('valid_pieces', valid_pieces)
 
-        if len(valid_movements) > 0:
+        if len(valid_pieces) > 0:
 
             return {
                 'valid': True,
@@ -164,6 +191,7 @@ def analyze_move(prev_state, curr_state):
                 'from_pos': initial_pos,
                 'to_pos': final_pos,
                 'piece': moving_piece,
+                'valid_pieces': valid_pieces
             }
         
         else:
