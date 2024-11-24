@@ -14,11 +14,11 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
     pawn_movements = pawn_movement(initial_pos, prev_state)
 
-    print('pawn_movements', pawn_movements)
-    print('final_pos', final_pos)
+    # print('pawn_movements', pawn_movements)
+    # print('final_pos', final_pos)
 
     if final_pos in pawn_movements:
-        print('pawn move verified')
+        # print('pawn move verified')
 
         if color > 0:
             valid_movements.append('white_pawn')
@@ -28,10 +28,10 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
     rook_movements = rook_movement(initial_pos, prev_state)
 
-    print('rook_movements', rook_movements)
+    # print('rook_movements', rook_movements)
 
     if final_pos in rook_movements:
-        print('rook move verified')
+        # print('rook move verified')
 
         if color > 0:
             valid_movements.append('white_rook')
@@ -40,10 +40,10 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
     knight_movements = knight_movement(initial_pos, prev_state)
 
-    print('knight_movements', knight_movements)
+    # print('knight_movements', knight_movements)
 
     if final_pos in knight_movements:
-        print('knight move verified')
+        # print('knight move verified')
 
         if color > 0:
             valid_movements.append('white_knight')
@@ -52,10 +52,10 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
     bishop_movements = bishop_movement(initial_pos, prev_state)
 
-    print('bishop_movements', bishop_movements)
+    # print('bishop_movements', bishop_movements)
 
     if final_pos in bishop_movements:
-        print('bishop move verified')
+        # print('bishop move verified')
 
         if color > 0:
             valid_movements.append('white_bishop')
@@ -64,10 +64,10 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
     queen_movements = queen_movement(initial_pos, prev_state)
 
-    print('queen_movements', queen_movements)
+    # print('queen_movements', queen_movements)
 
     if final_pos in queen_movements:
-        print('queen move verified')
+        # print('queen move verified')
 
         if color > 0:
             valid_movements.append('white_queen')
@@ -76,10 +76,10 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
     king_movements = king_movement(initial_pos, prev_state)
 
-    print('king_movements', king_movements)
+    # print('king_movements', king_movements)
 
     if final_pos in king_movements:
-        print('king move verified')
+        # print('king move verified')
 
         if color > 0:
             valid_movements.append('white_king')
@@ -109,7 +109,7 @@ def analyze_move(prev_state, curr_state):
     """
 
 
-    print('MOVEMENT ANALYSIS')
+    
 
     # Convert to numpy arrays if not already
     prev_state = np.array(prev_state)
@@ -124,7 +124,7 @@ def analyze_move(prev_state, curr_state):
     # Get positions where changes occurred
     positions = list(zip(changes[0], changes[1]))
 
-    print('positions', positions)
+    # print('positions', positions)
 
     
     # If no changes or more than 2 positions changed, invalid move
@@ -137,6 +137,9 @@ def analyze_move(prev_state, curr_state):
 
     
     elif len(positions) > 2:
+
+        print('Too much positions :', positions)
+
         return {
             'valid': False,
             'move_type': 'invalid',
@@ -146,6 +149,7 @@ def analyze_move(prev_state, curr_state):
     # For a basic move (no capture)
     if len(positions) == 2:
 
+        print('MOVEMENT ANALYSIS')
 
         pos1, pos2 = positions
         
@@ -162,18 +166,18 @@ def analyze_move(prev_state, curr_state):
 
         moving_piece = prev_state[initial_pos]
 
-        print('moving_piece', moving_piece)
+        # print('moving_piece', moving_piece)
         
         # Position final avant le mouvement
-        initial_final_value = prev_state[final_pos]
+        target_square = prev_state[final_pos]
 
-        print('initial_final_value', initial_final_value)
+        # print('initial_final_value', initial_final_value)
 
         # from_square = f"{chr(97 + initial_pos[1])}{8 - initial_pos[0]}"
         # to_square = f"{chr(97 + final_pos[1])}{8 - final_pos[0]}"
 
         # Simple move
-        if initial_final_value == 0:
+        if target_square == 0:
             movement = 'move'
         else:
             movement = 'capture'
