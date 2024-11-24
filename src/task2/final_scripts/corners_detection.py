@@ -34,13 +34,124 @@ def detect_corners(img, chessboard_size = (7, 7)):
         corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
 
         # Draw corners on the image
-        # cv2.drawChessboardCorners(img, chessboard_size, corners, True)
+        cv2.drawChessboardCorners(img, chessboard_size, corners, True)
     else:
         corners = None
     return corners
 
 
 
+def detect_all_chessboard_corners(img, corners, chessboard_size=(7, 7)):
+    """
+    Détecte tous les coins du plateau d'échecs (8x8 cases) à partir des coins intérieurs détectés.
+    
+    Args:
+        img: Image source
+        corners: Coins détectés par cv2.findChessboardCorners (7x7 points)
+        chessboard_size: Taille du plateau intérieur (par défaut 7x7)
+    
+    Returns:
+        - np.array de forme (8, 8, 4, 2) contenant les coordonnées des 4 coins de chaque case
+        - liste des 4 coins extrêmes [a1, a8, h1, h8]
+    """
+    if corners is None:
+        return None, None
+    
+    # Reshape corners into a 7x7 grid
+    corners_grid = corners.reshape(chessboard_size[0], chessboard_size[1], 2)
+    
+    # Create extended grid (9x9) including all corner points
+    extended_grid = np.zeros((9, 9, 2))
+    
+    # Fill the inner points (7x7)
+    extended_grid[1:8, 1:8] = corners_grid
+    
+    # Extrapolate outer edges
+    # Left column
+    for i in range(1, 8):
+        extended_grid[i, 0] = extrapolate_point(
+            extended_grid[i, 1],
+            extended_grid[i, 2]
+        )
+    
+    # Right column
+    for i in range(1, 8):
+        extended_grid[i, 8] = extrapolate_point(
+            extended_grid[i, 7],
+            extended_grid[i, 6]
+        )
+    
+    # Top row
+    for j in range(9):
+        extended_grid[0, j] = extrapolate_point(
+            extended_grid[1, j],
+            extended_grid[2, j]
+        )
+    
+    # Bottom row
+    for j in range(9):
+        extended_grid[8, j] = extrapolate_point(
+            extended_grid[7, j],
+            extended_grid[6, j]
+        )
+    
+    # Get extremities (chess notation: a1, a8, h1, h8)
+    extremities = [
+        extended_grid[0, 0],  # a8 (top-left)
+        extended_grid[8, 0],  # a1 (bottom-left)
+        extended_grid[8, 8],  # h1 (bottom-right)
+        extended_grid[0, 8],  # h8 (top-right)
+    ]
+    
+    # Initialize the 8x8 array for all squares (each with 4 corners)
+    all_corners = np.zeros((8, 8, 4, 2))
+    
+    # Fill all_corners with the four corners of each square
+    for i in range(8):
+        for j in range(8):
+            # Top-left corner of the square
+            all_corners[i, j, 0] = extended_grid[i, j]
+            # Top-right corner of the square
+            all_corners[i, j, 1] = extended_grid[i, j+1]
+            # Bottom-right corner of the square
+            all_corners[i, j, 2] = extended_grid[i+1, j+1]
+            # Bottom-left corner of the square
+            all_corners[i, j, 3] = extended_grid[i+1, j]
+    
+    return all_corners, extremities
+
+
+def extrapolate_point(p1, p2):
+    """
+    Extrapole un point en utilisant la direction définie par deux points.
+    """
+    return p1 + (p1 - p2)
+
+
+def draw_all_corners(img, all_corners):
+    for i in range(8):
+        for j in range(8):
+            # cv2.drawChessboardCorners(img, (7, 7), all_corners[i, j], True)
+
+            for corner in all_corners[i, j]:
+                
+                if i == 0 or j == 0:
+                    cv2.circle(img, tuple(map(int, corner)), 5, (0, 0, 255), -1)
+                
+                elif i == 7 or j == 7:
+                    cv2.circle(img, tuple(map(int, corner)), 5, (255, 0, 0), -1)
+
+                # else:
+                    # cv2.circle(img, tuple(map(int, corner)), 5, (0, 255, 0), -1)
+                
+    return img
+
+
+def draw_extremities(img, extremities):
+    for extremity in extremities:
+            
+        cv2.circle(img, tuple(map(int, extremity)), 5, (0, 0, 255), -1)
+    return img
 
 
 def detect_chessboard_corners_extremities(img, corners, chessboard_size = (7, 7)):
@@ -85,6 +196,20 @@ def detect_chessboard_corners_extremities(img, corners, chessboard_size = (7, 7)
     
     except:
         return None
+    
+
+def label_corners2(corners):
+
+    labeled_corners = {}
+
+    labeled_corners["a1"] = tuple(corners[0])
+    labeled_corners["a8"] = tuple(corners[1])
+    labeled_corners["h1"] = tuple(corners[2])
+    labeled_corners["h8"] = tuple(corners[3])
+
+    return labeled_corners
+
+    pass
     
 
 def refine_corners(img, chessboard_corners, search_radius=20):
