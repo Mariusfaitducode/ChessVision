@@ -138,6 +138,18 @@ def analyze_move(prev_state, curr_state):
     
     elif len(positions) > 2:
 
+        if len(positions) == 4:
+
+            print('Special case 4 positions : could be a castling')
+
+            castling_movements = castling_movement(positions, prev_state, curr_state)
+
+            print('castling_movements', castling_movements)
+
+            if castling_movements['valid']:
+                return castling_movements
+
+
         print('Too much positions :', positions)
 
         return {
@@ -146,7 +158,11 @@ def analyze_move(prev_state, curr_state):
             'message': 'Invalid number of position changes'
         }
     
-    # For a basic move (no capture)
+
+    ###########################################
+    # * MOVEMENT ANALYSIS
+    ###########################################
+
     if len(positions) == 2:
 
         print('MOVEMENT ANALYSIS')
@@ -171,10 +187,7 @@ def analyze_move(prev_state, curr_state):
         # Position final avant le mouvement
         target_square = prev_state[final_pos]
 
-        # print('initial_final_value', initial_final_value)
-
-        # from_square = f"{chr(97 + initial_pos[1])}{8 - initial_pos[0]}"
-        # to_square = f"{chr(97 + final_pos[1])}{8 - final_pos[0]}"
+        # print('targetl_value', target_value)
 
         # Simple move
         if target_square == 0:
@@ -182,6 +195,9 @@ def analyze_move(prev_state, curr_state):
         else:
             movement = 'capture'
 
+        ###########################################
+        # * VALID MOVEMENT
+        ###########################################
 
         valid_pieces = verify_movement(prev_state, initial_pos, final_pos)
 

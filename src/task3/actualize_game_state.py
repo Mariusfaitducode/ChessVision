@@ -115,3 +115,39 @@ def actualize_game_state(game_actualization, move_analysis, board):
 
 
 
+def actualize_game_state_with_castling(game_actualization, move_analysis, board):
+
+    # Si le mouvement n'est pas valide, ne rien mettre à jour
+    if not move_analysis['valid']:
+        return game_actualization
+    
+    # Si c'est le premier appel, initialiser le dictionnaire de certitude
+    if 'piece_certainty' not in game_actualization:
+        game_actualization['piece_certainty'] = {}
+
+
+    king_final_pos = move_analysis['king_final']
+    rook_final_pos = move_analysis['rook_final']
+
+    color = 'white' if move_analysis['color'] == 1 else 'black'
+
+    game_actualization['piece_certainty'][king_final_pos] = {color + '_king': 1.0}
+    game_actualization['piece_certainty'][rook_final_pos] = {color + '_rook': 1.0}
+
+    new_probabilities = {
+        'king': game_actualization['piece_certainty'][king_final_pos],
+        'rook': game_actualization['piece_certainty'][rook_final_pos]
+    }
+
+    # Mettre à jour le plateau si certitude suffisante
+    CERTAINTY_THRESHOLD = 0.6
+    for pos, certainties in game_actualization['piece_certainty'].items():
+        for piece, prob in certainties.items():
+            if prob > CERTAINTY_THRESHOLD:
+                board[pos] = utils.PIECES_TO_NUM[piece]
+    
+    return game_actualization, board, new_probabilities
+
+
+    
+
