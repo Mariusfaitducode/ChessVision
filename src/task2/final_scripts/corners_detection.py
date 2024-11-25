@@ -34,7 +34,7 @@ def detect_corners(img, chessboard_size = (7, 7)):
         corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
 
         # Draw corners on the image
-        cv2.drawChessboardCorners(img, chessboard_size, corners, True)
+        # cv2.drawChessboardCorners(img, chessboard_size, corners, True)
     else:
         corners = None
     return corners
@@ -69,30 +69,34 @@ def detect_all_chessboard_corners(img, corners, chessboard_size=(7, 7)):
     # Extrapolate outer edges
     # Left column
     for i in range(1, 8):
-        extended_grid[i, 0] = extrapolate_point(
+        extended_grid[i, 0] = extrapolate_point_with_ratio(
             extended_grid[i, 1],
-            extended_grid[i, 2]
+            extended_grid[i, 2],
+            extended_grid[i, 3]
         )
     
     # Right column
     for i in range(1, 8):
-        extended_grid[i, 8] = extrapolate_point(
+        extended_grid[i, 8] = extrapolate_point_with_ratio(
             extended_grid[i, 7],
-            extended_grid[i, 6]
+            extended_grid[i, 6],
+            extended_grid[i, 5]
         )
     
     # Top row
     for j in range(9):
-        extended_grid[0, j] = extrapolate_point(
+        extended_grid[0, j] = extrapolate_point_with_ratio(
             extended_grid[1, j],
-            extended_grid[2, j]
+            extended_grid[2, j],
+            extended_grid[3, j]
         )
     
     # Bottom row
     for j in range(9):
-        extended_grid[8, j] = extrapolate_point(
+        extended_grid[8, j] = extrapolate_point_with_ratio(
             extended_grid[7, j],
-            extended_grid[6, j]
+            extended_grid[6, j],
+            extended_grid[5, j]
         )
     
     # Get extremities (chess notation: a1, a8, h1, h8)
@@ -126,6 +130,16 @@ def extrapolate_point(p1, p2):
     Extrapole un point en utilisant la direction définie par deux points.
     """
     return p1 + (p1 - p2)
+
+
+def extrapolate_point_with_ratio(p1, p2, p3):
+
+    v1 = p1 - p2
+    v2 = p3 - p2
+
+    ratio = np.linalg.norm(v1) / np.linalg.norm(v2)
+
+    return p1 + v1 * ratio
 
 
 def draw_all_corners(img, all_corners):

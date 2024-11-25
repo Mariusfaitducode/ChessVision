@@ -29,8 +29,8 @@ def process_video(video_path):
 
     # Initialize tracking variables
     last_frame_corners_extremities = None
-    frame_count = 12000
-    frame_interval = 5
+    frame_count = 0
+    frame_interval = 25
     
     # Cache to store the last valid detections
     cache = {
@@ -87,12 +87,12 @@ def process_video(video_path):
         if chessboard_corners is not None:
             chessboard_corners_extremities = detect_chessboard_corners_extremities(frame, chessboard_corners)
 
-            all_corners, extremities = detect_all_chessboard_corners(frame, chessboard_corners)
+            all_corners, chessboard_corners_extremities = detect_all_chessboard_corners(frame, chessboard_corners)
 
             # img = draw_all_corners(frame, all_corners)
-            img = draw_extremities(frame, extremities)
-            cv2.imshow('img', img)
-            cv2.waitKey(0)
+            img = draw_extremities(frame, chessboard_corners_extremities)
+            # cv2.imshow('img', img)
+            # cv2.waitKey(0)
 
 
         radius = 15  # Default search radius for corner refinement
@@ -104,8 +104,8 @@ def process_video(video_path):
         elif chessboard_corners_extremities is None or any(corner is None for corner in chessboard_corners_extremities) and cache['chessboard_corners_extremities'] is not None:
             chessboard_corners_extremities = cache['chessboard_corners_extremities']
             radius = 40  # Increase search radius when using last known corners
-            # skip_moment = True
-            # continue
+            skip_moment = True
+            continue
         
         # Refine corner positions
         # chessboard_corners_refined = refine_corners(frame, chessboard_corners_extremities, search_radius=radius)
@@ -127,8 +127,6 @@ def process_video(video_path):
         # * CORNER LABELING
         ###########################################
         
-        
-
         # TODO : label corners without using stickers
 
         # labeled_corners = None
@@ -211,12 +209,12 @@ def process_video(video_path):
         if frame_count % 50 == 0 or skip_moment:
             if frame is not None:
                 frame_name = f"frame_{frame_count:06d}.png"
-                cv2.imwrite(os.path.join('images_1', frame_name), frame)
+                cv2.imwrite(os.path.join('images_results/frames', frame_name), frame)
                 print(f"Saved: {frame_name}")
 
             if warped_frame is not None:
                 warped_frame_name = f"warped_frame_{frame_count:06d}.png"
-                cv2.imwrite(os.path.join('images_1', warped_frame_name), warped_frame)
+                cv2.imwrite(os.path.join('images_results/warped_images', warped_frame_name), warped_frame)
                 print(f"Saved: {warped_frame_name}")
 
             skip_moment = False
