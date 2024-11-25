@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from utils import find_corners_with_timeout
+from utils import *
 
 from stickers_detection import detect_stickers, draw_stickers
 
@@ -34,9 +34,10 @@ def detect_corners(img, chessboard_size = (7, 7)):
         corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
 
         # Draw corners on the image
-        # cv2.drawChessboardCorners(img, chessboard_size, corners, True)
+        cv2.drawChessboardCorners(img, chessboard_size, corners, True)
     else:
         corners = None
+
     return corners
 
 
@@ -108,52 +109,36 @@ def detect_all_chessboard_corners(img, corners, chessboard_size=(7, 7)):
     ]
     
     # Initialize the 8x8 array for all squares (each with 4 corners)
-    all_corners = np.zeros((8, 8, 4, 2))
+    # all_corners = np.zeros((8, 8, 4, 2))
     
-    # Fill all_corners with the four corners of each square
-    for i in range(8):
-        for j in range(8):
-            # Top-left corner of the square
-            all_corners[i, j, 0] = extended_grid[i, j]
-            # Top-right corner of the square
-            all_corners[i, j, 1] = extended_grid[i, j+1]
-            # Bottom-right corner of the square
-            all_corners[i, j, 2] = extended_grid[i+1, j+1]
-            # Bottom-left corner of the square
-            all_corners[i, j, 3] = extended_grid[i+1, j]
+    # # Fill all_corners with the four corners of each square
+    # for i in range(8):
+    #     for j in range(8):
+    #         # Top-left corner of the square
+    #         all_corners[i, j, 0] = extended_grid[i, j]
+    #         # Top-right corner of the square
+    #         all_corners[i, j, 1] = extended_grid[i, j+1]
+    #         # Bottom-right corner of the square
+    #         all_corners[i, j, 2] = extended_grid[i+1, j+1]
+    #         # Bottom-left corner of the square
+    #         all_corners[i, j, 3] = extended_grid[i+1, j]
     
-    return all_corners, extended_grid, extremities
+    return extended_grid, extremities
 
 
-def extrapolate_point(p1, p2):
-    """
-    Extrapole un point en utilisant la direction définie par deux points.
-    """
-    return p1 + (p1 - p2)
 
 
-def extrapolate_point_with_ratio(p1, p2, p3):
 
-    v1 = p1 - p2
-    v2 = p3 - p2
-
-    ratio = np.linalg.norm(v1) / np.linalg.norm(v2)
-
-    return p1 + v1 * ratio
-
-
-def draw_all_corners(img, all_corners):
+def draw_all_corners(img, corners):
     for i in range(8):
         for j in range(8):
             # cv2.drawChessboardCorners(img, (7, 7), all_corners[i, j], True)
 
-            for corner in all_corners[i, j]:
+            if i == 0 or j == 0 or i == 8 or j == 8:
+                cv2.circle(img, tuple(map(int, corners[i, j])), 5, (0, 0, 255), -1)
                 
-                if i == 0 or j == 0:
-                    cv2.circle(img, tuple(map(int, corner)), 5, (0, 0, 255), -1)
-                
-                elif i == 7 or j == 7:
-                    cv2.circle(img, tuple(map(int, corner)), 5, (255, 0, 0), -1)
+            else:
+                cv2.circle(img, tuple(map(int, corners[i, j])), 5, (255, 0, 0), -1)
 
                 # else:
                     # cv2.circle(img, tuple(map(int, corner)), 5, (0, 255, 0), -1)
@@ -168,48 +153,48 @@ def draw_extremities(img, extremities):
     return img
 
 
-def detect_chessboard_corners_extremities(img, corners, chessboard_size = (7, 7)):
-    """
-    Detects the chessboard in the image and returns its corners.
+# def detect_chessboard_corners_extremities(img, corners, chessboard_size = (7, 7)):
+#     """
+#     Detects the chessboard in the image and returns its corners.
 
-    :param img: Input image in color (BGR)
-    :param show_process: Boolean to display intermediate steps
-    :return: List of corner coordinates [a1, a8, h8, h1] and approximate contour, or (None, None) if not detected
-    """
+#     :param img: Input image in color (BGR)
+#     :param show_process: Boolean to display intermediate steps
+#     :return: List of corner coordinates [a1, a8, h8, h1] and approximate contour, or (None, None) if not detected
+#     """
 
-    objp = np.zeros((np.prod(chessboard_size), 3), np.float32)
-    objp[:, :2] = np.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1, 2)
+#     objp = np.zeros((np.prod(chessboard_size), 3), np.float32)
+#     objp[:, :2] = np.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1, 2)
 
-    objpoints = []
-    imgpoints = []
+#     objpoints = []
+#     imgpoints = []
     
-    objpoints.append(objp)
-    imgpoints.append(corners)
+#     objpoints.append(objp)
+#     imgpoints.append(corners)
 
-    try:
-        # Retrieve the 4 points at the extremities of the matrix in cornersRefined
-        top_left = corners[0][0]
-        top_right = corners[chessboard_size[0] - 1][0]
-        bottom_right = corners[-1][0]
-        bottom_left = corners[-chessboard_size[0]][0]
+#     try:
+#         # Retrieve the 4 points at the extremities of the matrix in cornersRefined
+#         top_left = corners[0][0]
+#         top_right = corners[chessboard_size[0] - 1][0]
+#         bottom_right = corners[-1][0]
+#         bottom_left = corners[-chessboard_size[0]][0]
 
-        # TODO : clean this code
+#         # TODO : clean this code
 
-        a1 = top_left + (corners[0][0] - corners[1][0]) + (
-                    corners[0][0] - corners[chessboard_size[0]][0])
-        a8 = bottom_left + (corners[-chessboard_size[0]][0] - corners[-chessboard_size[0] + 1][0]) + (
-                    corners[-chessboard_size[0]][0] - corners[-chessboard_size[0] * 2][0])
-        h1 = bottom_right + (corners[-1][0] - corners[-2][0]) + (
-                    corners[-1][0] - corners[-chessboard_size[0] - 1][0])
-        h8 = top_right + (corners[chessboard_size[0] - 1][0] - corners[chessboard_size[0] - 2][0]) + (
-                    corners[chessboard_size[0] - 1][0] - corners[chessboard_size[0] * 2 - 1][0])
+#         a1 = top_left + (corners[0][0] - corners[1][0]) + (
+#                     corners[0][0] - corners[chessboard_size[0]][0])
+#         a8 = bottom_left + (corners[-chessboard_size[0]][0] - corners[-chessboard_size[0] + 1][0]) + (
+#                     corners[-chessboard_size[0]][0] - corners[-chessboard_size[0] * 2][0])
+#         h1 = bottom_right + (corners[-1][0] - corners[-2][0]) + (
+#                     corners[-1][0] - corners[-chessboard_size[0] - 1][0])
+#         h8 = top_right + (corners[chessboard_size[0] - 1][0] - corners[chessboard_size[0] - 2][0]) + (
+#                     corners[chessboard_size[0] - 1][0] - corners[chessboard_size[0] * 2 - 1][0])
 
-        corners_extremities = [a1, a8, h1, h8]
+#         corners_extremities = [a1, a8, h1, h8]
 
-        return corners_extremities
+#         return corners_extremities
     
-    except:
-        return None
+#     except:
+#         return None
     
 
 def label_corners2(corners):
@@ -360,73 +345,73 @@ def draw_labeled_chessboard(img, labeled_corners):
 
 
 # This part will only run if the script is executed directly (not imported)
-if __name__ == "__main__":
-    # Test the function with a single image
-    img = cv2.imread('src/calibration_images/img1.png')
+# if __name__ == "__main__":
+#     # Test the function with a single image
+#     img = cv2.imread('src/calibration_images/img1.png')
 
-    # Load a test video
-    video_path = 'videos/moving_game.MOV'  # Replace with the path to your video
-    cap = cv2.VideoCapture(video_path)
+#     # Load a test video
+#     video_path = 'videos/moving_game.MOV'  # Replace with the path to your video
+#     cap = cv2.VideoCapture(video_path)
 
-    frame_interval = 100
-    frame_count = 0
+#     frame_interval = 100
+#     frame_count = 0
 
-    # last_area = None
+#     # last_area = None
 
-    if not cap.isOpened():
-        print(f"Erreur: Impossible de charger la vidéo {video_path}")
-    else:
-        while True:
+#     if not cap.isOpened():
+#         print(f"Erreur: Impossible de charger la vidéo {video_path}")
+#     else:
+#         while True:
 
-            if frame_count % frame_interval == 0:
+#             if frame_count % frame_interval == 0:
 
-                cap.set(cv2.CAP_PROP_POS_FRAMES, frame_count)
-                ret, frame = cap.read()
+#                 cap.set(cv2.CAP_PROP_POS_FRAMES, frame_count)
+#                 ret, frame = cap.read()
 
-                if not ret:
-                    break
+#                 if not ret:
+#                     break
 
-                # corners = detect_chessboard_corners(frame, show_process=False)
-                corners = detect_corners(frame)
+#                 # corners = detect_chessboard_corners(frame, show_process=False)
+#                 corners = detect_corners(frame)
 
-                chessboard_corners_extremities = detect_chessboard_corners_extremities(frame, corners)
+#                 chessboard_corners_extremities = detect_chessboard_corners_extremities(frame, corners)
 
-                corners = chessboard_corners_extremities
+#                 corners = chessboard_corners_extremities
 
-                if corners is not None:
+#                 if corners is not None:
 
-                    print("CORNERS : ", corners)
+#                     print("CORNERS : ", corners)
 
-                    refine_corners(frame, corners, show_process=True)
+#                     refine_corners(frame, corners, show_process=True)
 
-                    blue_sticker, pink_sticker, labeled_corners = detect_stickers(frame, corners)
-                    blue_stickers = [blue_sticker] if blue_sticker else []
-                    pink_stickers = [pink_sticker] if pink_sticker else []
+#                     blue_sticker, pink_sticker, labeled_corners = detect_stickers(frame, corners)
+#                     blue_stickers = [blue_sticker] if blue_sticker else []
+#                     pink_stickers = [pink_sticker] if pink_sticker else []
 
-                    img_with_chessboard = draw_labeled_chessboard(frame.copy(), corners, blue_stickers, pink_stickers)
+#                     img_with_chessboard = draw_labeled_chessboard(frame.copy(), corners, blue_stickers, pink_stickers)
 
-                    # display_width = 800  # Vous pouvez ajuster cette valeur selon vos besoins
-                    # aspect_ratio = img_with_chessboard.shape[1] / img_with_chessboard.shape[0]
-                    # display_height = int(display_width / aspect_ratio)
-                    # display_frame = cv2.resize(img_with_chessboard, (display_width, display_height))
+#                     # display_width = 800  # Vous pouvez ajuster cette valeur selon vos besoins
+#                     # aspect_ratio = img_with_chessboard.shape[1] / img_with_chessboard.shape[0]
+#                     # display_height = int(display_width / aspect_ratio)
+#                     # display_frame = cv2.resize(img_with_chessboard, (display_width, display_height))
 
-                    # Afficher l'image traitée
-                    # cv2.imshow('Processed Video', display_frame)
+#                     # Afficher l'image traitée
+#                     # cv2.imshow('Processed Video', display_frame)
 
-                    cv2.imshow("Detected Chessboard", img_with_chessboard)
-                    cv2.waitKey(0)
-                    # cv2.destroyAllWindows()
-                else:
-                    print("No chessboard detected")
+#                     cv2.imshow("Detected Chessboard", img_with_chessboard)
+#                     cv2.waitKey(0)
+#                     # cv2.destroyAllWindows()
+#                 else:
+#                     print("No chessboard detected")
 
-                key = cv2.waitKey(1) & 0xFF
+#                 key = cv2.waitKey(1) & 0xFF
 
-                if key == ord('q'):
-                    print("Fermeture des fenêtres")
-                    break
+#                 if key == ord('q'):
+#                     print("Fermeture des fenêtres")
+#                     break
 
-            frame_count += 1
+#             frame_count += 1
 
-        cap.release()
+#         cap.release()
 
 

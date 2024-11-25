@@ -53,10 +53,7 @@ def process_video(video_path):
     }
     # last_frame = None
 
-
     skip_moment = False
-
-
 
     while True:
 
@@ -88,40 +85,57 @@ def process_video(video_path):
         chessboard_corners = detect_corners(frame)
         
         chessboard_corners_extremities = None
+
+        
+
         # Detect chessboard corners
-        if chessboard_corners is not None:
-            chessboard_corners_extremities = detect_chessboard_corners_extremities(frame, chessboard_corners)
+        if chessboard_corners is not None: # * Found corners with cv2.findChessboardCorners
 
-            all_corners, extended_grid, chessboard_corners_extremities = detect_all_chessboard_corners(frame, chessboard_corners)
+            # chessboard_corners_extremities = detect_chessboard_corners_extremities(frame, chessboard_corners)
+            extended_grid, chessboard_corners_extremities = detect_all_chessboard_corners(frame, chessboard_corners)
 
-            # img = draw_all_corners(frame, all_corners)
-            img = draw_extremities(frame, chessboard_corners_extremities)
+            # img = draw_all_corners(frame, extended_grid)
+            # img = draw_extremities(frame, chessboard_corners_extremities)
             # cv2.imshow('img', img)
             # cv2.waitKey(0)
 
 
-        radius = 15  # Default search radius for corner refinement
+            if chessboard_corners_extremities: # * SAVE DETECTION INFORMATIONS
+                cache['chessboard_corners_extremities'] = chessboard_corners_extremities
+                cache['extended_grid'] = extended_grid
+                cache['last_frame'] = frame
 
-        # If detection fails, use last known corners
-        if chessboard_corners_extremities:
-            cache['chessboard_corners_extremities'] = chessboard_corners_extremities
 
-            cache['extended_grid'] = extended_grid
-            cache['last_frame'] = frame
+        else: 
+            print("NO CORNERS FOUND")
 
-        elif chessboard_corners_extremities is None or any(corner is None for corner in chessboard_corners_extremities) and cache['chessboard_corners_extremities'] is not None:
-            
-            print('No corners found, using last known corners')
+            # Skip option
 
-            estimated_corners = estimate_corners_movement(cache['extended_grid'], frame, cache['last_frame'], debug=True)
-
-            
-            
             chessboard_corners_extremities = cache['chessboard_corners_extremities']
-            radius = 40  # Increase search radius when using last known corners
-            skip_moment = True
-            continue
-        
+            # skip_moment = True
+            # continue
+
+            # * SEARCH CORNERS USING LAST KNOWN CORNERS AND CORNERS TRACKING
+
+            # chessboard_corners_extremities = None
+
+            if cache['extended_grid'] is not None and cache['last_frame'] is not None:
+                estimated_corners, extremities = estimate_corners_movement(cache['extended_grid'], frame, cache['last_frame'], debug=True)
+
+                print('corners', estimated_corners)
+
+                # cache['extended_grid'] = estimated_corners
+                # cache['last_frame'] = frame
+
+                if estimated_corners is not None and extremities is not None:
+
+                    img = draw_all_corners(frame, estimated_corners)
+
+                    chessboard_corners_extremities = extremities
+                    cache['chessboard_corners_extremities'] = chessboard_corners_extremities
+                    
+
+            
         # Refine corner positions
         # chessboard_corners_refined = refine_corners(frame, chessboard_corners_extremities, search_radius=radius)
 
@@ -129,11 +143,6 @@ def process_video(video_path):
 
         for corner in chessboard_corners_extremities:
             chessboard_corners_refined.append(tuple(corner))
-
-        # print(chessboard_corners_refined)
-        # print(refine_corners(frame, chessboard_corners_extremities, search_radius=radius))
-
-        # chessboard_corners_refined = chessboard_corners_extremities
 
         cache['chessboard_corners_extremities'] = chessboard_corners_refined
 
