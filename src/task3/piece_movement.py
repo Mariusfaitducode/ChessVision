@@ -209,14 +209,17 @@ def castling_movement(positions, prev_state, curr_state):
         # Verify if the castling move was valid
         if prev_state[rook_final] == 0 and prev_state[king_final] == 0:
 
-            return {
-                'valid': True,
-                'move_type': 'castling',
-                'message': 'Queenside castling move is valid',
-                'king_final': king_final,
-                'rook_final': rook_final,
-                'color': color
-            }
+            # Verify if the castling move was well done
+            if curr_state[king_final]*color > 0 and curr_state[rook_final]*color > 0:
+
+                return {
+                    'valid': True,
+                    'move_type': 'castling',
+                    'message': 'Queenside castling move is valid',
+                    'king_final': king_final,
+                    'rook_final': rook_final,
+                    'color': color
+                }
 
     # Verify if the right rook changed was in the good position and with the right color
     elif rook_positions[1] in positions and prev_state[rook_positions[1]]*color > 0:
@@ -228,14 +231,17 @@ def castling_movement(positions, prev_state, curr_state):
         # Verify if the castling move was valid
         if prev_state[rook_final] == 0 and prev_state[king_final] == 0:
 
-            return {
-                'valid': True,
-                'move_type': 'castling',
-                'message': 'Kingside castling move is valid',
-                'king_final': king_final,
-                'rook_final': rook_final,
-                'color': color
-            }
+            # Verify if the castling move was well done 
+            if curr_state[king_final]*color > 0 and curr_state[rook_final]*color > 0:
+
+                return {
+                    'valid': True,
+                    'move_type': 'castling',
+                    'message': 'Kingside castling move is valid',
+                    'king_final': king_final,
+                    'rook_final': rook_final,
+                    'color': color
+                }
 
     return {
         'valid': False,

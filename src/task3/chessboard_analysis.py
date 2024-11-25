@@ -43,7 +43,7 @@ def analyze_chess_board(frame):
     square_stats = {}
     
     # Define margin (as percentage of square size)
-    margin_percent = 0.15  # 15% margin
+    margin_percent = 0.1  # 10% margin
     
     index = 0
     
@@ -75,7 +75,7 @@ def analyze_chess_board(frame):
             inner_bottom = bottom - margin_h
             inner_right = right - margin_w
             
-            is_occupied, edge_percentage = detect_if_case_is_occupied(edges, inner_top, inner_left, inner_bottom, inner_right)
+            is_occupied, edge_percentage, pixel_variance = detect_if_case_is_occupied(edges, blurred, inner_top, inner_left, inner_bottom, inner_right)
 
             piece_color = None
             piece_peak = None
@@ -99,6 +99,7 @@ def analyze_chess_board(frame):
             }
             square_stats[square_name] = {
                 'edge_percentage': edge_percentage,
+                'pixel_variance': pixel_variance,
                 'index': index,
                 'name': square_name,
                 'piece_peak': piece_peak
@@ -113,8 +114,9 @@ def analyze_chess_board(frame):
                         (inner_right, inner_bottom), 
                         (128, 128, 128), 1)  # Gray rectangle to show analyzed area
             
-    piece_colors = classify_pieces(occupied_squares, debug=False)
-    
+    if len(occupied_squares) > 0:
+        piece_colors = classify_pieces(occupied_squares, debug=False)
+
     # Mettre à jour square_results avec les couleurs des pièces
     for square_name, piece_info in square_results.items():
         if piece_info['is_occupied']:
@@ -150,7 +152,7 @@ def analyze_all_images(folder_path):
     # Interactive visualization
     image_names = list(results.keys())
     current_idx = 0
-    current_view = 'original'  # 'original', 'gray', 'blurred', 'edges'
+    current_view = 'blurred'  # 'original', 'gray', 'blurred', 'edges'
 
     data = {}
     data['game_states'] = []
@@ -167,7 +169,6 @@ def analyze_all_images(folder_path):
         current_image = image_names[i]
         result = results[current_image]
         
-
         # Retrieve datas
 
         game_state = np.zeros((8, 8), dtype=int)
@@ -176,9 +177,13 @@ def analyze_all_images(folder_path):
             for j in range(8):
                 square_name = f"{chr(65+j)}{8-i}"
                 square_result = result['square_results'][square_name]
+
                 is_occupied = square_result['is_occupied']
 
                 piece_color = square_result['piece_color']
+
+                # if current_image == 'warped_frame_000800.png':
+                #     print(square_name, result['square_results'][square_name])
 
                 if is_occupied is True:
 
@@ -192,7 +197,9 @@ def analyze_all_images(folder_path):
                     elif last_game_state is not None:
                         game_state[i, j] = last_game_state[i, j]
 
-        print(game_state)
+        # if current_image == 'warped_frame_000800.png':
+            # print(result['square_results'][square_name])
+            # print(game_state)
 
         state = {
             'frame': current_image,
@@ -231,8 +238,8 @@ def analyze_all_images(folder_path):
             for j in range(8):
                 top = i * square_h
                 left = j * square_w
-                bottom = (i + 1) * square_h
-                right = (j + 1) * square_w
+                bottom = (i + 1) * square_h - 2
+                right = (j + 1) * square_w - 2
                 
                 square_name = f"{chr(72-i)}{8-j}"
 
@@ -250,10 +257,13 @@ def analyze_all_images(folder_path):
                 piece_peak = stats['piece_peak']
 
                 if piece_color is not None:
-                    # Addtext
                     text = f"{piece_color}"
                     cv2.putText(img_display, text, (left + 5, top + 20),
-                          cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2)
+                    # Addtext
+                text = f"{stats['edge_percentage']:.2f} -- {stats['pixel_variance']:.2f}%"
+                cv2.putText(img_display, text, (left + 5, top + 80),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 1)
                 
 
         

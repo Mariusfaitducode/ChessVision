@@ -4,7 +4,7 @@ import cv2
 
 
 
-def detect_if_case_is_occupied(edges_frame, inner_top, inner_left, inner_bottom, inner_right):
+def detect_if_case_is_occupied(edges_frame, blurred_frame, inner_top, inner_left, inner_bottom, inner_right):
     
     # Extract square region for edge detection (inner area only)
     square_edges = edges_frame[inner_top:inner_bottom, inner_left:inner_right]
@@ -17,121 +17,21 @@ def detect_if_case_is_occupied(edges_frame, inner_top, inner_left, inner_bottom,
     inner_area = (inner_bottom - inner_top) * (inner_right - inner_left)
     edge_percentage = (edge_count / inner_area) * 100
     
+    
+
+    square_blurred = blurred_frame[inner_top:inner_bottom, inner_left:inner_right]
+
+    pixel_variance = np.var(square_blurred)
+    
+
     # Threshold to determine if square is occupied
     edge_threshold = 1  # Adjust this threshold as needed
-    
     # A square is considered occupied if it contains enough edges
-    is_occupied = edge_percentage > edge_threshold
+    is_occupied = bool(edge_percentage > 1 or pixel_variance > 50)
 
-    return is_occupied, edge_percentage
-
-
+    return is_occupied, edge_percentage, pixel_variance
 
 
-# def detect_piece_color(piece_region_bgr, is_dark_square, debug=True):
-#     # Séparer les canaux BGR
-#     b, g, r = cv2.split(piece_region_bgr)
-    
-#     def find_peaks(channel, min_peak_distance=30):
-#         hist = cv2.calcHist([channel], [0], None, [256], [0, 256])
-#         hist_smooth = cv2.GaussianBlur(hist, (5, 1), 0)
-        
-#         peaks = []
-#         min_peak_height = np.max(hist_smooth) * 0.01
-        
-#         for i in range(1, 255):
-#             if hist_smooth[i] > hist_smooth[i-1] and hist_smooth[i] > hist_smooth[i+1]:
-#                 if hist_smooth[i] > min_peak_height:
-#                     is_far_enough = True
-#                     for existing_peak, _ in peaks:
-#                         if abs(existing_peak - i) < min_peak_distance:
-#                             is_far_enough = False
-#                             if hist_smooth[i] > hist_smooth[existing_peak]:
-#                                 peaks.remove((existing_peak, hist_smooth[existing_peak][0]))
-#                                 is_far_enough = True
-#                                 break
-                    
-#                     if is_far_enough:
-#                         peaks.append((i, hist_smooth[i][0]))
-        
-#         return sorted(peaks, key=lambda x: x[1], reverse=True), hist_smooth
-    
-#     # Analyser chaque canal
-#     peaks_b, hist_b = find_peaks(b)
-#     peaks_g, hist_g = find_peaks(g)
-#     peaks_r, hist_r = find_peaks(r)
-    
-#     if debug:
-#         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
-        
-#         # Image originale
-#         ax1.imshow(cv2.cvtColor(piece_region_bgr, cv2.COLOR_BGR2RGB))
-#         ax1.set_title('Region analysée')
-        
-#         # Histogrammes des trois canaux
-#         ax2.plot(hist_b, 'b-', label='Blue channel')
-#         for pos, height in peaks_b:
-#             ax2.plot(pos, height, 'bo', markersize=10)
-#             ax2.text(pos, height, f' {pos}', verticalalignment='bottom')
-#         ax2.grid(True)
-#         ax2.legend()
-#         ax2.set_title('Blue Channel Histogram')
-        
-#         ax3.plot(hist_g, 'g-', label='Green channel')
-#         for pos, height in peaks_g:
-#             ax3.plot(pos, height, 'go', markersize=10)
-#             ax3.text(pos, height, f' {pos}', verticalalignment='bottom')
-#         ax3.grid(True)
-#         ax3.legend()
-#         ax3.set_title('Green Channel Histogram')
-        
-#         ax4.plot(hist_r, 'r-', label='Red channel')
-#         for pos, height in peaks_r:
-#             ax4.plot(pos, height, 'ro', markersize=10)
-#             ax4.text(pos, height, f' {pos}', verticalalignment='bottom')
-#         ax4.grid(True)
-#         ax4.legend()
-#         ax4.set_title('Red Channel Histogram')
-        
-#         plt.tight_layout()
-#         plt.show()
-    
-#     # Analyse des pics pour déterminer la couleur
-#     def analyze_channel_peaks(peaks, channel_name):
-#         if len(peaks) < 2:
-#             return None
-        
-#         # Ignorer le pic du background et analyser les autres pics
-#         for peak_pos, _ in peaks[1:]:
-#             # Les valeurs exactes des seuils peuvent nécessiter des ajustements
-#             if channel_name == 'red':
-#                 if peak_pos > 180:  # Pièce blanche devrait avoir un pic élevé en rouge
-#                     return 'white'
-#                 elif peak_pos < 150:  # Pièce noire devrait avoir un pic bas en rouge
-#                     return 'black'
-#             elif channel_name == 'blue':
-#                 if peak_pos > 180:
-#                     return 'white'
-#                 elif peak_pos < 150:
-#                     return 'black'
-#         return None
-    
-#     # Combiner les résultats des trois canaux
-#     results = []
-#     if len(peaks_r) > 1:
-#         results.append(analyze_channel_peaks(peaks_r, 'red'))
-#     if len(peaks_b) > 1:
-#         results.append(analyze_channel_peaks(peaks_b, 'blue'))
-#     if len(peaks_g) > 1:
-#         results.append(analyze_channel_peaks(peaks_g, 'green'))
-    
-#     # Prendre une décision basée sur la majorité
-#     results = [r for r in results if r is not None]
-#     if not results:
-#         return None
-    
-#     # Retourner la couleur la plus fréquente
-#     return max(set(results), key=results.count)
 
 
 def get_piece_roi(piece_region):

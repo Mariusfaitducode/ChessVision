@@ -199,26 +199,34 @@ def analyze_move(prev_state, curr_state):
         # * VALID MOVEMENT
         ###########################################
 
-        valid_pieces = verify_movement(prev_state, initial_pos, final_pos)
+        if curr_state[final_pos] == prev_state[initial_pos]:
 
-        print('valid_pieces', valid_pieces)
+            valid_pieces = verify_movement(prev_state, initial_pos, final_pos)
 
-        if len(valid_pieces) > 0:
+            print('valid_pieces', valid_pieces)
 
-            return {
+            if len(valid_pieces) > 0:
+
+                return {
                 'valid': True,
                 'move_type': movement,
                 'from_pos': initial_pos,
                 'to_pos': final_pos,
                 'piece': moving_piece,
-                'valid_pieces': valid_pieces
-            }
+                    'valid_pieces': valid_pieces
+                }
+            else:
+                return {
+                    'valid': False,
+                    'move_type': 'invalid',
+                    'message': 'No valid piece found matching the movement'
+                }
         
         else:
             return {
                 'valid': False,
                 'move_type': 'invalid',
-                'message': 'No piece found matching the movement'
+                'message': 'Final piece is not the same as the initial piece'
             }
     
     return {
