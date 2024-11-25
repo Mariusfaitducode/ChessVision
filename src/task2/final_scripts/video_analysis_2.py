@@ -7,6 +7,8 @@ import numpy as np
 # from camera_calibration import calibrate_camera, undistort_frame
 
 from corners_detection import *
+from corners_tracking import *
+
 from stickers_detection import detect_stickers, draw_stickers, label_corners
 from chessboard_homography import compute_homography, compute_pose, draw_axis
 
@@ -35,6 +37,9 @@ def process_video(video_path):
     # Cache to store the last valid detections
     cache = {
         'frame': None,
+
+        'last_frame':None,
+        'extended_grid': None,
 
         'H': None,
         'objp': None,
@@ -87,7 +92,7 @@ def process_video(video_path):
         if chessboard_corners is not None:
             chessboard_corners_extremities = detect_chessboard_corners_extremities(frame, chessboard_corners)
 
-            all_corners, chessboard_corners_extremities = detect_all_chessboard_corners(frame, chessboard_corners)
+            all_corners, extended_grid, chessboard_corners_extremities = detect_all_chessboard_corners(frame, chessboard_corners)
 
             # img = draw_all_corners(frame, all_corners)
             img = draw_extremities(frame, chessboard_corners_extremities)
@@ -101,7 +106,17 @@ def process_video(video_path):
         if chessboard_corners_extremities:
             cache['chessboard_corners_extremities'] = chessboard_corners_extremities
 
+            cache['extended_grid'] = extended_grid
+            cache['last_frame'] = frame
+
         elif chessboard_corners_extremities is None or any(corner is None for corner in chessboard_corners_extremities) and cache['chessboard_corners_extremities'] is not None:
+            
+            print('No corners found, using last known corners')
+
+            estimated_corners = estimate_corners_movement(cache['extended_grid'], frame, cache['last_frame'], debug=True)
+
+            
+            
             chessboard_corners_extremities = cache['chessboard_corners_extremities']
             radius = 40  # Increase search radius when using last known corners
             skip_moment = True

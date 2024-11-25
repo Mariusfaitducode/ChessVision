@@ -55,7 +55,7 @@ def detect_all_chessboard_corners(img, corners, chessboard_size=(7, 7)):
         - liste des 4 coins extrêmes [a1, a8, h1, h8]
     """
     if corners is None:
-        return None, None
+        return None, None, None
     
     # Reshape corners into a 7x7 grid
     corners_grid = corners.reshape(chessboard_size[0], chessboard_size[1], 2)
@@ -122,7 +122,7 @@ def detect_all_chessboard_corners(img, corners, chessboard_size=(7, 7)):
             # Bottom-left corner of the square
             all_corners[i, j, 3] = extended_grid[i+1, j]
     
-    return all_corners, extremities
+    return all_corners, extended_grid, extremities
 
 
 def extrapolate_point(p1, p2):
