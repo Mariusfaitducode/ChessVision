@@ -34,7 +34,7 @@ def detect_corners(img, chessboard_size = (7, 7)):
         corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
 
         # Draw corners on the image
-        cv2.drawChessboardCorners(img, chessboard_size, corners, True)
+        # cv2.drawChessboardCorners(img, chessboard_size, corners, True)
     else:
         corners = None
 
@@ -342,76 +342,5 @@ def draw_labeled_chessboard(img, labeled_corners):
     
     
     return img
-
-
-# This part will only run if the script is executed directly (not imported)
-# if __name__ == "__main__":
-#     # Test the function with a single image
-#     img = cv2.imread('src/calibration_images/img1.png')
-
-#     # Load a test video
-#     video_path = 'videos/moving_game.MOV'  # Replace with the path to your video
-#     cap = cv2.VideoCapture(video_path)
-
-#     frame_interval = 100
-#     frame_count = 0
-
-#     # last_area = None
-
-#     if not cap.isOpened():
-#         print(f"Erreur: Impossible de charger la vidéo {video_path}")
-#     else:
-#         while True:
-
-#             if frame_count % frame_interval == 0:
-
-#                 cap.set(cv2.CAP_PROP_POS_FRAMES, frame_count)
-#                 ret, frame = cap.read()
-
-#                 if not ret:
-#                     break
-
-#                 # corners = detect_chessboard_corners(frame, show_process=False)
-#                 corners = detect_corners(frame)
-
-#                 chessboard_corners_extremities = detect_chessboard_corners_extremities(frame, corners)
-
-#                 corners = chessboard_corners_extremities
-
-#                 if corners is not None:
-
-#                     print("CORNERS : ", corners)
-
-#                     refine_corners(frame, corners, show_process=True)
-
-#                     blue_sticker, pink_sticker, labeled_corners = detect_stickers(frame, corners)
-#                     blue_stickers = [blue_sticker] if blue_sticker else []
-#                     pink_stickers = [pink_sticker] if pink_sticker else []
-
-#                     img_with_chessboard = draw_labeled_chessboard(frame.copy(), corners, blue_stickers, pink_stickers)
-
-#                     # display_width = 800  # Vous pouvez ajuster cette valeur selon vos besoins
-#                     # aspect_ratio = img_with_chessboard.shape[1] / img_with_chessboard.shape[0]
-#                     # display_height = int(display_width / aspect_ratio)
-#                     # display_frame = cv2.resize(img_with_chessboard, (display_width, display_height))
-
-#                     # Afficher l'image traitée
-#                     # cv2.imshow('Processed Video', display_frame)
-
-#                     cv2.imshow("Detected Chessboard", img_with_chessboard)
-#                     cv2.waitKey(0)
-#                     # cv2.destroyAllWindows()
-#                 else:
-#                     print("No chessboard detected")
-
-#                 key = cv2.waitKey(1) & 0xFF
-
-#                 if key == ord('q'):
-#                     print("Fermeture des fenêtres")
-#                     break
-
-#             frame_count += 1
-
-#         cap.release()
 
 

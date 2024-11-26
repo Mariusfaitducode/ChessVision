@@ -7,7 +7,7 @@ import numpy as np
 # from camera_calibration import calibrate_camera, undistort_frame
 
 from corners_detection import *
-from corners_tracking import *
+from corners_tracking2 import *
 
 from stickers_detection import detect_stickers, draw_stickers, label_corners
 from chessboard_homography import compute_homography, compute_pose, draw_axis
@@ -40,6 +40,7 @@ def process_video(video_path):
 
         'last_frame':None,
         'extended_grid': None,
+        'extended_mask': None,
 
         'H': None,
         'objp': None,
@@ -102,6 +103,7 @@ def process_video(video_path):
 
             if chessboard_corners_extremities: # * SAVE DETECTION INFORMATIONS
                 cache['chessboard_corners_extremities'] = chessboard_corners_extremities
+                cache['extended_mask'] = np.ones((9, 9), dtype=bool)
                 cache['extended_grid'] = extended_grid
                 cache['last_frame'] = frame
 
@@ -120,16 +122,22 @@ def process_video(video_path):
             # chessboard_corners_extremities = None
 
             if cache['extended_grid'] is not None and cache['last_frame'] is not None:
-                estimated_corners, extremities = estimate_corners_movement(cache['extended_grid'], frame, cache['last_frame'], debug=True)
 
-                print('corners', estimated_corners)
+                # if cache['extended_mask'] is None:
+                    
+                
+                extremities, grid, mask = estimate_corners_movement(cache['extended_grid'], cache['extended_mask'], frame, cache['last_frame'], debug=False)
 
-                # cache['extended_grid'] = estimated_corners
-                # cache['last_frame'] = frame
+                # extremities = None
+                # print('corners', estimated_corners)
 
-                if estimated_corners is not None and extremities is not None:
+                cache['extended_grid'] = grid
+                cache['extended_mask'] = mask
+                cache['last_frame'] = frame
 
-                    img = draw_all_corners(frame, estimated_corners)
+                if extremities is not None:
+
+                    # img = draw_all_corners(frame, extremities)
 
                     chessboard_corners_extremities = extremities
                     cache['chessboard_corners_extremities'] = chessboard_corners_extremities
@@ -141,8 +149,10 @@ def process_video(video_path):
 
         chessboard_corners_refined = []
 
-        for corner in chessboard_corners_extremities:
-            chessboard_corners_refined.append(tuple(corner))
+        if chessboard_corners_extremities is not None:
+
+            for corner in chessboard_corners_extremities:
+                chessboard_corners_refined.append(tuple(corner))
 
         cache['chessboard_corners_extremities'] = chessboard_corners_refined
 
