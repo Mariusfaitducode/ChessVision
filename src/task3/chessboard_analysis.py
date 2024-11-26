@@ -43,7 +43,7 @@ def analyze_chess_board(frame):
     square_stats = {}
     
     # Define margin (as percentage of square size)
-    margin_percent = 0.1  # 10% margin
+    margin_percent = 0.15  # 10% margin
     
     index = 0
     
@@ -152,7 +152,7 @@ def analyze_all_images(folder_path):
     # Interactive visualization
     image_names = list(results.keys())
     current_idx = 0
-    current_view = 'blurred'  # 'original', 'gray', 'blurred', 'edges'
+    current_view = 'original'  # 'original', 'gray', 'blurred', 'edges'
 
     data = {}
     data['game_states'] = []

@@ -1,96 +1,80 @@
-
 import numpy as np
 
 from piece_movement import *
+from castling_movement import *
+
+
+
+# potential_castling = None
+
+
+def verify_castling_in_two_steps(prev_state, initial_pos, final_pos, potential_castling=None):
+
+
+    # Vérifier si c'est la deuxième partie d'un castling
+    if potential_castling is not None:
+
+        result = verify_second_part_castling(potential_castling, initial_pos, final_pos, prev_state)
+
+        if result is not None:
+            print("CASTLING IN TWO STEPS DETECTED !!!!!!!!!!!!!!!")
+
+        return 'castling_confirmed', result  
+
+    else:
+
+        # Détecter un potentiel début de castling
+        potential_castling_first_part = detect_first_part_castling(initial_pos, final_pos, prev_state)
+
+        if potential_castling_first_part is not None:
+            print("POTENTIAL CASTLING FIRST PART DETECTED")
+
+            return 'potential_castling', potential_castling_first_part
+
+    return None, None
+
 
 
 def verify_movement(prev_state, initial_pos, final_pos):
-
-    print("VERIFY MOVEMENT")
-
+    """
+    Vérifie les mouvements possibles et détecte les potentiels débuts de castling
+    """
     valid_movements = []
 
     color = prev_state[initial_pos]
+    # piece_value = abs(prev_state[initial_pos])
 
-    pawn_movements = pawn_movement(initial_pos, prev_state)
-
-    # print('pawn_movements', pawn_movements)
-    # print('final_pos', final_pos)
-
-    if final_pos in pawn_movements:
-        # print('pawn move verified')
-
-        if color > 0:
-            valid_movements.append('white_pawn')
-        else:
-            valid_movements.append('black_pawn')
-
-
-    rook_movements = rook_movement(initial_pos, prev_state)
-
-    # print('rook_movements', rook_movements)
-
-    if final_pos in rook_movements:
-        # print('rook move verified')
-
-        if color > 0:
-            valid_movements.append('white_rook')
-        else:
-            valid_movements.append('black_rook')
-
-    knight_movements = knight_movement(initial_pos, prev_state)
-
-    # print('knight_movements', knight_movements)
-
-    if final_pos in knight_movements:
-        # print('knight move verified')
-
-        if color > 0:
-            valid_movements.append('white_knight')
-        else:
-            valid_movements.append('black_knight')
-
-    bishop_movements = bishop_movement(initial_pos, prev_state)
-
-    # print('bishop_movements', bishop_movements)
-
-    if final_pos in bishop_movements:
-        # print('bishop move verified')
-
-        if color > 0:
-            valid_movements.append('white_bishop')
-        else:
-            valid_movements.append('black_bishop')
-
-    queen_movements = queen_movement(initial_pos, prev_state)
-
-    # print('queen_movements', queen_movements)
-
-    if final_pos in queen_movements:
-        # print('queen move verified')
-
-        if color > 0:
-            valid_movements.append('white_queen')
-        else:
-            valid_movements.append('black_queen')
-
-    king_movements = king_movement(initial_pos, prev_state)
-
-    # print('king_movements', king_movements)
-
-    if final_pos in king_movements:
-        # print('king move verified')
-
-        if color > 0:
-            valid_movements.append('white_king')
-        else:
-            valid_movements.append('black_king')
     
+
+    # Vérification des mouvements standards
+    if final_pos in pawn_movement(initial_pos, prev_state):
+        valid_movements.append(f"{'white' if color > 0 else 'black'}_pawn")
+
+    if final_pos in rook_movement(initial_pos, prev_state):
+        valid_movements.append(f"{'white' if color > 0 else 'black'}_rook")
+
+    if final_pos in knight_movement(initial_pos, prev_state):
+        valid_movements.append(f"{'white' if color > 0 else 'black'}_knight")
+
+    if final_pos in bishop_movement(initial_pos, prev_state):
+        valid_movements.append(f"{'white' if color > 0 else 'black'}_bishop")
+
+    if final_pos in queen_movement(initial_pos, prev_state):
+        valid_movements.append(f"{'white' if color > 0 else 'black'}_queen")
+
+    if final_pos in king_movement(initial_pos, prev_state):
+        valid_movements.append(f"{'white' if color > 0 else 'black'}_king")
+        
+    
+
+
     return valid_movements
 
 
 
-def analyze_move(prev_state, curr_state):
+potential_castling = None
+
+def analyze_move(prev_state, curr_state, potential_castling=None):
     """
     Compare two successive chess board states and determine the move made.
     
@@ -124,7 +108,7 @@ def analyze_move(prev_state, curr_state):
     # Get positions where changes occurred
     positions = list(zip(changes[0], changes[1]))
 
-    # print('positions', positions)
+    print('Change positions', positions)
 
     
     # If no changes or more than 2 positions changed, invalid move
@@ -133,7 +117,7 @@ def analyze_move(prev_state, curr_state):
             'valid': False,
             'move_type': 'invalid',
             'message': 'No changes detected'
-        }
+        }, potential_castling
 
     
     elif len(positions) > 2:
@@ -147,16 +131,16 @@ def analyze_move(prev_state, curr_state):
             print('castling_movements', castling_movements)
 
             if castling_movements['valid']:
-                return castling_movements
+                return castling_movements, potential_castling
 
 
-        print('Too much positions :', positions)
+        
 
         return {
             'valid': False,
             'move_type': 'invalid',
             'message': 'Invalid number of position changes'
-        }
+        }, potential_castling
     
 
     ###########################################
@@ -199,7 +183,16 @@ def analyze_move(prev_state, curr_state):
         # * VALID MOVEMENT
         ###########################################
 
-        if curr_state[final_pos] == prev_state[initial_pos]:
+        if curr_state[final_pos] == prev_state[initial_pos] and curr_state[initial_pos] == 0:
+
+
+            castling_result, potential_result = verify_castling_in_two_steps(prev_state, initial_pos, final_pos, potential_castling)
+
+            if castling_result is not None:
+                if castling_result == 'castling_confirmed':
+                    return potential_result, None
+                elif castling_result == 'potential_castling':
+                    potential_castling = potential_result
 
             valid_pieces = verify_movement(prev_state, initial_pos, final_pos)
 
@@ -208,29 +201,29 @@ def analyze_move(prev_state, curr_state):
             if len(valid_pieces) > 0:
 
                 return {
-                'valid': True,
-                'move_type': movement,
-                'from_pos': initial_pos,
-                'to_pos': final_pos,
-                'piece': moving_piece,
+                    'valid': True,
+                    'move_type': movement,
+                    'from_pos': initial_pos,
+                    'to_pos': final_pos,
+                    'piece': moving_piece,
                     'valid_pieces': valid_pieces
-                }
+                }, potential_castling
             else:
                 return {
                     'valid': False,
                     'move_type': 'invalid',
                     'message': 'No valid piece found matching the movement'
-                }
+                }, potential_castling
         
         else:
             return {
                 'valid': False,
                 'move_type': 'invalid',
                 'message': 'Final piece is not the same as the initial piece'
-            }
+            }, potential_castling
     
     return {
         'valid': False,
         'move_type': 'invalid',
         'message': 'Unrecognized move pattern'
-    }
+    }, potential_castling

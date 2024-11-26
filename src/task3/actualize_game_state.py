@@ -129,7 +129,7 @@ def actualize_game_state_with_castling(game_actualization, move_analysis, board)
     king_final_pos = move_analysis['king_final']
     rook_final_pos = move_analysis['rook_final']
 
-    color = 'white' if move_analysis['color'] == 1 else 'black'
+    color = 'white' if move_analysis['color'] > 0 else 'black'
 
     game_actualization['piece_certainty'][king_final_pos] = {color + '_king': 1.0}
     game_actualization['piece_certainty'][rook_final_pos] = {color + '_rook': 1.0}
