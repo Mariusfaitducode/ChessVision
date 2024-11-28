@@ -74,7 +74,7 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
 potential_castling = None
 
-def analyze_move(prev_state, curr_state, potential_castling=None):
+def analyze_move(prev_state, curr_state, potential_castling=None, game_actualization=None):
     """
     Compare two successive chess board states and determine the move made.
     
@@ -91,9 +91,6 @@ def analyze_move(prev_state, curr_state, potential_castling=None):
             - piece (int): piece value that was moved
             - captured (int): piece value that was captured (if any)
     """
-
-
-    
 
     # Convert to numpy arrays if not already
     prev_state = np.array(prev_state)
@@ -112,79 +109,72 @@ def analyze_move(prev_state, curr_state, potential_castling=None):
 
     
     # If no changes or more than 2 positions changed, invalid move
-    if len(positions) < 2 :
+    if len(positions) == 0 :
         return {
             'valid': False,
             'move_type': 'invalid',
             'message': 'No changes detected'
         }, potential_castling
-
     
-    elif len(positions) > 2:
-
-        if len(positions) == 4:
-
-            print('Special case 4 positions : could be a castling')
-
-            castling_movements = castling_movement(positions, prev_state, curr_state)
-
-            print('castling_movements', castling_movements)
-
-            if castling_movements['valid']:
-                return castling_movements, potential_castling
-
-
-        
-
+    if len(positions) == 1 :
         return {
             'valid': False,
             'move_type': 'invalid',
-            'message': 'Invalid number of position changes'
+            'message': 'Only 1 change so its an error'
         }, potential_castling
+    
+    if len(positions) == 4:
+
+        print('Special case 4 positions : could be a castling')
+
+        castling_movements = castling_movement(positions, prev_state, curr_state)
+
+        print('castling_movements', castling_movements)
+
+        if castling_movements['valid']:
+            return castling_movements, potential_castling
+
+        # return {
+        #     'valid': False,
+        #     'move_type': 'invalid',
+        #     'message': 'Invalid number of position changes'
+        # }, potential_castling
     
 
     ###########################################
     # * MOVEMENT ANALYSIS
     ###########################################
 
-    if len(positions) == 2:
+    if len(positions) == 2 or len(positions) == 3:
 
         print('MOVEMENT ANALYSIS')
-
-        pos1, pos2 = positions
         
-        initial_pos = None
-        final_pos = None
+        initial_pos = []
+        final_pos = []
 
-        # La position initiale est vide après le mouvement
-        if curr_state[pos1] == 0:
-            initial_pos = pos1
-            final_pos = pos2
-        else:
-            initial_pos = pos2
-            final_pos = pos1
+        # * On sépare les positions initiales et finales
+        for pos in positions:
+            if curr_state[pos] == 0:
+                initial_pos.append(pos)
+            else:
+                final_pos.append(pos)
 
-        moving_piece = prev_state[initial_pos]
 
-        # print('moving_piece', moving_piece)
-        
-        # Position final avant le mouvement
-        target_square = prev_state[final_pos]
+        # * On retrouve les combinaisons valides
+        valid_combinations = []
 
-        # print('targetl_value', target_value)
+        for initial in initial_pos:
+            for final in final_pos:
+                if curr_state[final] == prev_state[initial]:
+                    valid_combinations.append((initial, final))
 
-        # Simple move
-        if target_square == 0:
-            movement = 'move'
-        else:
-            movement = 'capture'
 
-        ###########################################
-        # * VALID MOVEMENT
-        ###########################################
+        valid_movements = []
+        for combination in valid_combinations:
+            print('combination', combination)
 
-        if curr_state[final_pos] == prev_state[initial_pos] and curr_state[initial_pos] == 0:
-
+            initial_pos = combination[0]
+            final_pos = combination[1]
 
             castling_result, potential_result = verify_castling_in_two_steps(prev_state, initial_pos, final_pos, potential_castling)
 
@@ -196,31 +186,52 @@ def analyze_move(prev_state, curr_state, potential_castling=None):
 
             valid_pieces = verify_movement(prev_state, initial_pos, final_pos)
 
-            print('valid_pieces', valid_pieces)
-
             if len(valid_pieces) > 0:
+                valid_movements.append((combination, valid_pieces))
 
-                return {
-                    'valid': True,
-                    'move_type': movement,
-                    'from_pos': initial_pos,
-                    'to_pos': final_pos,
-                    'piece': moving_piece,
-                    'valid_pieces': valid_pieces
-                }, potential_castling
-            else:
-                return {
-                    'valid': False,
-                    'move_type': 'invalid',
-                    'message': 'No valid piece found matching the movement'
-                }, potential_castling
+        print('valid_movements', valid_movements)
+
+        if len(valid_movements) == 1:
+
+            combination = valid_movements[0][0]
+            valid_pieces = valid_movements[0][1]
+
+            move = 'move' if prev_state[combination[1]] == 0 else 'capture'
+
+            # Trouver la position qui n'est pas dans la combinaison valide
+            error_pos = None
+            for pos in positions:
+                if pos not in combination:
+                    error_pos = pos
+                    break
+
+            # # Correct the error
+            # curr_state[error_pos] = prev_state[error_pos]
+
+            return {
+                'valid': True,
+                'move_type': move,
+                'from_pos': combination[0],
+                'to_pos': combination[1],
+                'piece': prev_state[combination[0]],
+                'valid_pieces': valid_pieces,
+                'error_pos': error_pos
+            }, potential_castling
         
-        else:
+        elif len(valid_movements) > 1:
             return {
                 'valid': False,
                 'move_type': 'invalid',
-                'message': 'Final piece is not the same as the initial piece'
+                'message': 'Too much valid movements found'
             }, potential_castling
+        
+
+    else:
+        return {
+            'valid': False,
+            'move_type': 'invalid',
+            'message': 'Too much positions changed'
+        }, potential_castling
     
     return {
         'valid': False,

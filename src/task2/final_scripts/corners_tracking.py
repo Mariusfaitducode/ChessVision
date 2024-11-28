@@ -75,9 +75,9 @@ def estimate_corners_movement(prev_grid, curr_frame, prev_frame, debug=False):
             reconstructed_grid[0, 8],  # h8 (top-right)
         ]
         
-        return reconstructed_grid, extremities
+        return reconstructed_grid, extremities, None
     
-    return None, None
+    return None, None, None
 
 
 

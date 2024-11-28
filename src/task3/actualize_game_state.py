@@ -88,8 +88,6 @@ def actualize_game_state(game_actualization, move_analysis, board):
         # Vider l'ancienne position
         game_actualization['piece_certainty'][from_pos] = {}
         
-        
-
         ###########################################
         # * NORMALIZATION
         ###########################################
