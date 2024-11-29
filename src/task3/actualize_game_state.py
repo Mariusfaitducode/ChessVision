@@ -135,8 +135,7 @@ def actualize_game_state(game_actualization, move_analysis, board):
                 # Première observation: utiliser directement les probabilités pondérées
                 new_probabilities[piece] = base_prob
         
-        # Vider l'ancienne position
-        game_actualization['piece_certainty'][from_pos] = {}
+        
         
         ###########################################
         # * NORMALIZATION
@@ -150,6 +149,7 @@ def actualize_game_state(game_actualization, move_analysis, board):
 
         # Mettre à jour la nouvelle position
         game_actualization['piece_certainty'][to_pos] = new_probabilities
+        
 
         ###########################################
         # * UPDATE OTHER PIECES WHEN CERTAINTY REACHED
@@ -158,23 +158,38 @@ def actualize_game_state(game_actualization, move_analysis, board):
         # Vérifier si une pièce atteint 100% de certitude
         for piece, prob in new_probabilities.items():
             if prob > 0.99:  # On utilise 0.99 pour gérer les erreurs d'arrondi
-                # Incrémenter le compteur de pièces identifiées
-                IDENTIFIED_PIECES[piece] += 1
-                piece_type = get_piece_type(piece)
+                # Vérifier si la pièce n'était pas déjà identifiée avec certitude
+                was_certain = False
+                if from_pos in game_actualization['piece_certainty']:
+                    for old_piece, old_prob in game_actualization['piece_certainty'][from_pos].items():
+                        if old_piece == piece and old_prob > 0.99:
+                            was_certain = True
+                            break
                 
-                # Si nous avons trouvé toutes les pièces de ce type
-                if IDENTIFIED_PIECES[piece] >= PIECES_COUNT[piece_type]:
-                    # Parcourir toutes les positions pour supprimer cette possibilité
-                    for pos, certainties in game_actualization['piece_certainty'].items():
-                        if pos != to_pos and piece in certainties and certainties[piece] < 0.99:
-                            del certainties[piece]
+                # Incrémenter le compteur seulement si c'est une nouvelle identification
+                if not was_certain:
 
-                            # Renormaliser les probabilités restantes
-                            if certainties:  # Si il reste des pièces possibles
-                                total_prob = sum(certainties.values())
-                                if total_prob > 0:
-                                    for p in certainties:
-                                        certainties[p] /= total_prob
+                    print(f"NEW PIECE IDENTIFIED: {piece}")
+                    IDENTIFIED_PIECES[piece] += 1
+                    piece_type = get_piece_type(piece)
+                    
+                    # Si nous avons trouvé toutes les pièces de ce type
+                    if IDENTIFIED_PIECES[piece] >= PIECES_COUNT[piece_type]:
+                        # Parcourir toutes les positions pour supprimer cette possibilité
+                        for pos, certainties in game_actualization['piece_certainty'].items():
+                            if pos != to_pos and piece in certainties and certainties[piece] < 0.99:
+                                del certainties[piece]
+                                
+                                # Renormaliser les probabilités restantes
+                                if certainties:  # Si il reste des pièces possibles
+                                    total_prob = sum(certainties.values())
+                                    if total_prob > 0:
+                                        for p in certainties:
+                                            certainties[p] /= total_prob
+
+        # Vider l'ancienne position
+        game_actualization['piece_certainty'][from_pos] = {}
+        
 
     # Clear void positions certainty
     for pos in game_actualization['piece_certainty']:
@@ -182,7 +197,7 @@ def actualize_game_state(game_actualization, move_analysis, board):
             game_actualization['piece_certainty'][pos] = {}
     
     # Mettre à jour le plateau si certitude suffisante
-    CERTAINTY_THRESHOLD = 0.9
+    CERTAINTY_THRESHOLD = 0.65
     for pos, certainties in game_actualization['piece_certainty'].items():
         for piece, prob in certainties.items():
             if prob > CERTAINTY_THRESHOLD:

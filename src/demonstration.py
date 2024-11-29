@@ -26,6 +26,10 @@ from task3.chessboard_utils import *
 # Task 4
 
 from task4.display_chess_game import *
+from task4.display_chess_3d import *
+
+import trimesh
+
 
 
 def process_video(video_path):
@@ -67,6 +71,7 @@ def process_video(video_path):
         'labeled_corners': None,
     }
 
+    vertices, faces = load_chess_piece()
 
     last_game_state = None
     actualized_game_state = {}
@@ -179,31 +184,7 @@ def process_video(video_path):
             cache['labeled_corners'] = labeled_corners if all(corner is not None for corner in labeled_corners.values()) else cache['labeled_corners']
 
 
-        ###########################################
-        # * HOMOGRAPHY AND POSE ESTIMATION
-        ###########################################
         
-        # Compute homography matrix
-        H = None
-        objp = None
-
-        if chessboard_corners is not None:
-            H, objp = compute_homography(chessboard_corners)
-        
-        # Update cache with valid homography results
-        if H is not None:
-            cache['H'] = H
-            cache['objp'] = objp
-
-        # Compute and draw 3D pose
-        if cache['labeled_corners'] is not None and cache['objp'] is not None:
-            rvec, tvec = compute_pose(cache['objp'], cache['labeled_corners'])
-            cache['rvec'] = rvec
-            cache['tvec'] = tvec
-
-
-        
-
 
 
         ###########################################
@@ -223,9 +204,7 @@ def process_video(video_path):
         if cache['blue_stickers'] is not None and cache['pink_stickers'] is not None:
             frame = draw_stickers(frame, cache['blue_stickers'], cache['pink_stickers'])
 
-        if cache['rvec'] is not None and cache['tvec'] is not None:
-            frame = draw_axis(frame, cache['rvec'], cache['tvec'])
-
+        
 
 
         # ! Task 3 : Game analysis
@@ -341,6 +320,56 @@ def process_video(video_path):
             # data['game_states'].append(state)
             # last_game_state = curr_state
 
+
+        
+
+
+        ###########################################
+        # * HOMOGRAPHY AND POSE ESTIMATION
+        ###########################################
+        
+        # Compute homography matrix
+        H = None
+        objp = None
+
+        if chessboard_corners is not None:
+            H, objp = compute_homography(chessboard_corners)
+        
+        # Update cache with valid homography results
+        if H is not None:
+            cache['H'] = H
+            cache['objp'] = objp
+
+        # Compute and draw 3D pose
+        if cache['labeled_corners'] is not None and cache['objp'] is not None:
+            rvec, tvec = compute_pose(cache['objp'], cache['labeled_corners'])
+            cache['rvec'] = rvec
+            cache['tvec'] = tvec
+
+        # Camera parameters
+        calibration_results = np.load('camera_calibration_results.npz')
+        camera_matrix = calibration_results['cameraMatrix']
+        dist_coeffs = calibration_results['distCoeffs']
+
+
+        if cache['rvec'] is not None and cache['tvec'] is not None:
+
+            params = {
+                'rvec': cache['rvec'],
+                'tvec': cache['tvec'],
+                'camera_matrix': camera_matrix,
+                'dist_coeffs': dist_coeffs
+            }
+
+
+            # frame = display_chess_piece(frame, params, 5, 5)
+
+            
+
+            frame = display_chess_game_3d(frame, params, actualized_game_state)
+
+            # Garder l'affichage des axes si souhaité
+            frame = draw_axis(frame, cache['rvec'], cache['tvec'])
 
         ###########################################
         # * DISPLAY RESULTS
