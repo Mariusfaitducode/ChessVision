@@ -1,6 +1,6 @@
 import numpy as np
 
-import chessboard_utils as utils
+import task3.chessboard_utils as utils
 
 # Définir le nombre de pièces de chaque type par couleur
 PIECES_COUNT = {

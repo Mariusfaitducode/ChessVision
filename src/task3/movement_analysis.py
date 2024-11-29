@@ -1,7 +1,7 @@
 import numpy as np
 
-from piece_movement import *
-from castling_movement import *
+from task3.piece_movement import *
+from task3.castling_movement import *
 
 
 

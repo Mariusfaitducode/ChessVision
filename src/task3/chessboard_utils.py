@@ -5,6 +5,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 from PIL import Image
 
+from pathlib import Path
+
 import copy
 
 
@@ -47,7 +49,7 @@ NUM_TO_PIECE = {
 
 
 piece_images = {
-    piece: Image.open(f'../../assets/{piece}.png') for piece in PIECES_TO_NUM.keys() if piece != "square"
+    piece: Image.open(str(Path(__file__).parent.parent.parent / 'assets' / f'{piece}.png')) for piece in PIECES_TO_NUM.keys() if piece != "square"
 }
 
 

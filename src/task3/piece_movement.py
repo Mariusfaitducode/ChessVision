@@ -1,5 +1,5 @@
 
-from piece_movement_utils import *
+from task3.piece_movement_utils import *
 
 import numpy as np
 
