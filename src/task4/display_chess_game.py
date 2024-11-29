@@ -26,7 +26,7 @@ def display_chess_game_2d(img_display, game_actualization):
 
             certainties = game_actualization['piece_certainty'][(j, i)]
 
-            CERTAINTY_THRESHOLD = 0.4
+            CERTAINTY_THRESHOLD = 0.6
             for piece, prob in certainties.items():
                 if prob > CERTAINTY_THRESHOLD:
                     piece_image = utils.piece_images[piece]
@@ -53,16 +53,8 @@ def display_chess_game_2d(img_display, game_actualization):
                     # Update the image
                     img_display[top:top+square_h, left:left+square_w] = blended
 
-    # Show the image
-    cv2.imshow('Chess Game', img_display)
-     
-    while True:
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord(' '):  # Espace
-            break
-        elif key == ord('q'):  # q
-            cv2.destroyAllWindows()
-            exit()
+                    cv2.putText(img_display, f"{prob:.2f}", (left + 60, top+ 20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2)
 
     return img_display
 

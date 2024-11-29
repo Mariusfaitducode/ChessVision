@@ -103,6 +103,8 @@ def castling_movement(positions, prev_state, curr_state):
 
     valid = verify_final_positions(king_final, rook_final, prev_state, curr_state, color)
 
+    # initial_positions = [pos for pos in positions if curr_state[pos] == 0]
+
     if valid is True:
         return {
                 'valid': True,

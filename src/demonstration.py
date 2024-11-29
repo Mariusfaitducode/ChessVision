@@ -21,6 +21,8 @@ from task3.chessboard_analysis import *
 from task3.movement_analysis import *
 from task3.actualize_game_state import *
 
+from task3.chessboard_utils import *
+
 # Task 4
 
 from task4.display_chess_game import *
@@ -75,6 +77,10 @@ def process_video(video_path):
     # Ajout des variables de contrôle
     paused = False
     frame_step = 0  # Pour stocker le nombre de frames à avancer/reculer
+
+    # Dictionnaire pour stocker l'historique des états
+    game_history = {}  # frame_count sera la clé principale
+    last_frame_analyzed = 0
 
     while True:
         if not paused:
@@ -224,90 +230,116 @@ def process_video(video_path):
 
         # ! Task 3 : Game analysis
 
-        #########################################
-        # * CHESSBOARD ANALYSIS
-        #########################################
+        print(f"\nCurrent frame: {frame_count}")
 
-        square_results, img, filtered_images, stats = analyze_chess_board(warped_frame)
+        # print(f"Frames in history: {list(game_history.keys())}")
 
-        # Retrieve datas
-        game_state = retrieve_game_state(square_results, last_game_state)
+        if frame_count % frame_save_interval == 0:
+            #########################################
+            # * CHESSBOARD ANALYSIS
+            #########################################
 
-        img_display = display_game_state(square_results, stats, img, filtered_images)
+            # * Si on revient en arrière et qu'on a déjà analysé cette frame
+            if frame_count in game_history.keys():
+                print('USING HISTORY')
+                img_display = game_history[frame_count]['display_frame']
+                cv2.imshow('warped_frame', img_display)
 
+            else:
+                print('NEW ANALYSIS')
+                # * Analyse normale
 
-        state = {
-            'frame': frame_count,
-            'gs': game_state
-        }
+                # last_frame_analyzed = frame_count
+                square_results, img, filtered_images, stats = analyze_chess_board(warped_frame)
 
+                # Retrieve datas
+                game_state = retrieve_game_state(square_results, last_game_state)
 
-        #########################################
-        # * GAME STATE ANALYSIS
-        #########################################
-
-        curr_state = np.fliplr(game_state.copy())
-
-        # print('curr_state : ', curr_state)
-
-
-        if last_game_state is None and curr_state is not None:
-
-            # * First state found --> initialization
-            actualized_game_state = initialize_game_state(curr_state)
-
-        
-        elif last_game_state is not None and game_state is not None:
-
-            # * Update game state
-            print('MOVE ANALYSIS')
-            move_analysis, potential_castling = analyze_move(last_game_state, curr_state, potential_castling, actualized_game_state)
-
-            # * If move is valid
-            if move_analysis['valid']:
-
-                # * Move is valid with error correction
-                if move_analysis['move_type'] != 'castling' and move_analysis['error_pos'] is not None:
-
-                    error_pos = move_analysis['error_pos']
-                    print('Correct error position : ', error_pos)
-                    curr_state[error_pos] = last_game_state[error_pos]
+                img_display = display_game_state(square_results, stats, img, filtered_images)
 
 
-                last_game_state = curr_state.copy()
-
-                # * If move is castling
-                if move_analysis['move_type'] == 'castling':
-
-                    actualized_game_state, board, piece_certainty = actualize_game_state_with_castling(actualized_game_state, move_analysis, curr_state)
-
-                else:
-                    # * Move is valid 
-                    actualized_game_state, board, piece_certainty = actualize_game_state(actualized_game_state, move_analysis, curr_state)
-                    
-                    from_pos = move_analysis['from_pos']
-                    to_pos = move_analysis['to_pos']
-                    
-                    # Convertir les positions en notation d'échecs
-                    from_square = f"{chr(97 + from_pos[1])}{8 - from_pos[0]}"
-                    to_square = f"{chr(97 + to_pos[1])}{8 - to_pos[0]}"
-                    
-                    if move_analysis['move_type'] == 'move':
-
-                        print(f"Move: {from_square} -> {to_square}")
-                    
-                    else:  # capture
-                        print(f"Capture: {from_square} x {to_square}")
+                state = {
+                    'frame': frame_count,
+                    'gs': game_state
+                }
 
 
-                # print(piece_certainty)
-                # draw_chessboard(board, show=True)
+                #########################################
+                # * GAME STATE ANALYSIS
+                #########################################
 
-                img_display = display_chess_game_2d(img_display, actualized_game_state)
+                curr_state = np.fliplr(game_state.copy())
+
+                if last_game_state is None and curr_state is not None:
+
+                    # * First state found --> initialization
+                    actualized_game_state = initialize_game_state(curr_state)
+                    last_game_state = curr_state
+
+                
+                elif last_game_state is not None and game_state is not None:
+
+                    # * Update game state
+                    print('MOVE ANALYSIS')
+                    move_analysis, potential_castling = analyze_move(last_game_state, curr_state, potential_castling, actualized_game_state)
+
+                    # * If move is valid
+                    if move_analysis['valid']:
+
+                        # * Move is valid with error correction
+                        if move_analysis['move_type'] != 'castling' and move_analysis['error_pos'] is not None:
+
+                            error_pos = move_analysis['error_pos']
+                            print('Correct error position : ', error_pos)
+                            curr_state[error_pos] = last_game_state[error_pos]
+
+                        last_game_state = curr_state.copy()
+
+                        # * If move is castling
+                        if move_analysis['move_type'] == 'castling':
+
+                            actualized_game_state, board, piece_certainty = actualize_game_state_with_castling(actualized_game_state, move_analysis, curr_state)
+
+                        else:
+                            # * Move is valid 
+                            actualized_game_state, board, piece_certainty = actualize_game_state(actualized_game_state, move_analysis, curr_state)
+                            
+                            from_pos = move_analysis['from_pos']
+                            to_pos = move_analysis['to_pos']
+                            
+                            # Convertir les positions en notation d'échecs
+                            from_square = f"{chr(97 + from_pos[1])}{8 - from_pos[0]}"
+                            to_square = f"{chr(97 + to_pos[1])}{8 - to_pos[0]}"
+                            
+                            if move_analysis['move_type'] == 'move':
+
+                                print(f"Move: {from_square} -> {to_square}")
+                            
+                            else:  # capture
+                                print(f"Capture: {from_square} x {to_square}")
 
 
-        # data['game_states'].append(state)
-        last_game_state = curr_state
+                        # print(piece_certainty)
+                        # draw_chessboard(board, show=True)
+
+                        img_display = display_chess_game_2d(img_display, actualized_game_state)
+                        cv2.imshow('warped_frame', img_display)
+
+                        # Sauvegarder l'état actuel dans l'historique
+                        
+
+
+                game_history[frame_count] = {
+                    'display_frame': img_display.copy(),
+                    'game_state': curr_state.copy() if curr_state is not None else None,
+                    'actualized_state': actualized_game_state.copy() if actualized_game_state else None
+                }
+                print(f"Saved frame {frame_count} to history")
+
+
+
+            # data['game_states'].append(state)
+            # last_game_state = curr_state
 
 
         ###########################################
@@ -317,7 +349,7 @@ def process_video(video_path):
         frame = resize_frame(frame, 1200)
         cv2.imshow('frame', frame)
 
-        cv2.imshow('warped_frame', img_display)
+        
 
 
         ##########################################
@@ -344,19 +376,19 @@ def process_video(video_path):
         ###########################################
         
         # Save every 100th frame
-        os.makedirs('images_1', exist_ok=True)
-        if frame_count % frame_save_interval == 0 or skip_moment:
-            if frame is not None:
-                frame_name = f"frame_{frame_count:06d}.png"
-                cv2.imwrite(os.path.join('images_results/frames', frame_name), frame)
-                print(f"Saved: {frame_name}")
+        # os.makedirs('images_1', exist_ok=True)
+        # if frame_count % frame_save_interval == 0 or skip_moment:
+        #     if frame is not None:
+        #         frame_name = f"frame_{frame_count:06d}.png"
+        #         cv2.imwrite(os.path.join('images_results/frames', frame_name), frame)
+        #         print(f"Saved: {frame_name}")
 
-            if warped_frame is not None:
-                warped_frame_name = f"warped_frame_{frame_count:06d}.png"
-                cv2.imwrite(os.path.join('images_results/warped_images', warped_frame_name), warped_frame)
-                print(f"Saved: {warped_frame_name}")
+        #     if warped_frame is not None:
+        #         warped_frame_name = f"warped_frame_{frame_count:06d}.png"
+        #         cv2.imwrite(os.path.join('images_results/warped_images', warped_frame_name), warped_frame)
+        #         print(f"Saved: {warped_frame_name}")
 
-            skip_moment = False
+        #     skip_moment = False
 
         # frame_count += 1
     

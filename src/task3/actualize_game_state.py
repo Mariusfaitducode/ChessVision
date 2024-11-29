@@ -201,6 +201,11 @@ def actualize_game_state(game_actualization, move_analysis, board):
     ###########################################
     # * UPDATE OTHER PIECES WHEN CERTAINTY REACHED
     ###########################################
+
+    # Clear void positions certainty
+    for pos in game_actualization['piece_certainty']:
+        if board[pos] == 0:
+            game_actualization['piece_certainty'][pos] = {}
     
     # Mettre à jour le plateau si certitude suffisante
     CERTAINTY_THRESHOLD = 0.9
@@ -237,6 +242,13 @@ def actualize_game_state_with_castling(game_actualization, move_analysis, board)
         'king': game_actualization['piece_certainty'][king_final_pos],
         'rook': game_actualization['piece_certainty'][rook_final_pos]
     }
+
+    # Clear void positions certainty
+    for pos in game_actualization['piece_certainty']:
+        if board[pos] == 0:
+            game_actualization['piece_certainty'][pos] = {}
+
+
 
     # Mettre à jour le plateau si certitude suffisante
     CERTAINTY_THRESHOLD = 0.6

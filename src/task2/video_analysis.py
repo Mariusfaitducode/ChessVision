@@ -2,9 +2,11 @@ import os
 
 import cv2
 import numpy as np
-# from sticker_calibration import detect_stickers, draw_stickers
-# from detect_corners3 import detect_chessboard_corners, refine_corners, get_warped_image, draw_chessboard, draw_refined_corners
-# from camera_calibration import calibrate_camera, undistort_frame
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).parent.parent 
+sys.path.append(str(project_root))
 
 from corners_detection import *
 from corners_tracking2 import *
@@ -128,7 +130,7 @@ def process_video(video_path):
                 # if cache['extended_mask'] is None:
                     
                 
-                extremities, grid, mask = estimate_corners_movement(cache['extended_grid'], cache['extended_mask'], frame, cache['last_frame'], debug=True)
+                extremities, grid, mask = estimate_corners_movement(cache['extended_grid'], cache['extended_mask'], frame, cache['last_frame'], debug=False)
 
                 # extremities = None
                 # print('corners', estimated_corners)

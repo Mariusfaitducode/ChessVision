@@ -4,6 +4,12 @@ import os
 import matplotlib.pyplot as plt
 import json
 
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).parent.parent 
+sys.path.append(str(project_root))
+
 from task3.case_analysis import detect_if_case_is_occupied, detect_piece_color
 from task3.case_color_analysis import classify_pieces
 
@@ -189,8 +195,8 @@ def display_game_state(square_results, stats_results, img, filtered_img, current
             stats = stats_results[square_name]
             
             # Green for occupied squares, red for empty ones
-            color = (0, 255, 0) if is_occupied else (0, 0, 255)
-            cv2.rectangle(img_display, (left, top), (right, bottom), color, 2)
+            if is_occupied:
+                cv2.rectangle(img_display, (left, top), (right, bottom), (0, 255, 0), 2)
             
             piece_peak = stats['piece_peak']
 
