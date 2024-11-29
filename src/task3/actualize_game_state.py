@@ -12,6 +12,14 @@ PIECES_COUNT = {
     "king": 1
 }
 
+# Au début du fichier, après PIECES_COUNT
+IDENTIFIED_PIECES = {
+    'white_pawn': 0, 'white_rook': 0, 'white_knight': 0,
+    'white_bishop': 0, 'white_queen': 0, 'white_king': 0,
+    'black_pawn': 0, 'black_rook': 0, 'black_knight': 0,
+    'black_bishop': 0, 'black_queen': 0, 'black_king': 0
+}
+
 
 
 def get_piece_type(piece_name):
@@ -92,9 +100,13 @@ def actualize_game_state(game_actualization, move_analysis, board):
     if len(valid_pieces) > 0:
         # Calculer les poids en fonction du nombre de pièces de chaque type
         weights = []
-        for piece in valid_pieces:
-            piece_type = get_piece_type(piece)
-            weights.append(PIECES_COUNT[piece_type])
+
+        if len(valid_pieces) > 1:
+            for piece in valid_pieces:
+                piece_type = get_piece_type(piece)
+                weights.append(PIECES_COUNT[piece_type] - IDENTIFIED_PIECES[piece])
+        else:
+            weights.append(1)
         
         # Normaliser les poids pour obtenir des probabilités
         total_weight = sum(weights)
@@ -144,63 +156,25 @@ def actualize_game_state(game_actualization, move_analysis, board):
         ###########################################
         
         # Vérifier si une pièce atteint 100% de certitude
-        if len(new_probabilities.items()) == 1:
-            piece, prob = list(new_probabilities.items())[0]
-            
+        for piece, prob in new_probabilities.items():
             if prob > 0.99:  # On utilise 0.99 pour gérer les erreurs d'arrondi
+                # Incrémenter le compteur de pièces identifiées
+                IDENTIFIED_PIECES[piece] += 1
                 piece_type = get_piece_type(piece)
-                color = piece.split('_')[0]
                 
-                # Compter combien de pièces de ce type sont déjà identifiées avec certitude
-                identified_count = 0
-                for pos, certainties in game_actualization['piece_certainty'].items():
-                    if len(certainties) == 1:
-                        certain_piece, certain_prob = list(certainties.items())[0]
-                        if (certain_prob > 0.99 and 
-                            get_piece_type(certain_piece) == piece_type and 
-                            certain_piece.startswith(color)):
-                            identified_count += 1
-                
-                # Calculer combien de pièces de ce type restent à identifier
-                remaining_pieces = PIECES_COUNT[piece_type] - identified_count
-                
-                # Parcourir toutes les positions pour mettre à jour les autres pièces
-                for pos, certainties in game_actualization['piece_certainty'].items():
-                    if pos != to_pos:  # Ne pas modifier la position actuelle
-                        # Filtrer les pièces de même type et couleur
-                        matching_pieces = {p: pr for p, pr in certainties.items() 
-                                        if get_piece_type(p) == piece_type 
-                                        and p.startswith(color)}
-                        
-                        # Si d'autres positions ont une probabilité pour ce type de pièce
-                        if matching_pieces and remaining_pieces > 0:
-                            # Ajuster les probabilités en fonction du nombre de pièces restantes
-                            adjustment_factor = remaining_pieces / PIECES_COUNT[piece_type]
-                            
-                            # Liste des pièces à supprimer (si prob = 0)
-                            pieces_to_remove = []
-                            
-                            for p in matching_pieces:
-                                new_prob = certainties[p] * adjustment_factor
-                                if new_prob > 0:
-                                    certainties[p] = new_prob
-                                else:
-                                    pieces_to_remove.append(p)
-                            
-                            # Supprimer les pièces avec probabilité nulle
-                            for p in pieces_to_remove:
-                                del certainties[p]
-                            
-                            # Renormaliser les probabilités
-                            if certainties:
-                                total = sum(certainties.values())
-                                if total > 0:
+                # Si nous avons trouvé toutes les pièces de ce type
+                if IDENTIFIED_PIECES[piece] >= PIECES_COUNT[piece_type]:
+                    # Parcourir toutes les positions pour supprimer cette possibilité
+                    for pos, certainties in game_actualization['piece_certainty'].items():
+                        if pos != to_pos and piece in certainties and certainties[piece] < 0.99:
+                            del certainties[piece]
+
+                            # Renormaliser les probabilités restantes
+                            if certainties:  # Si il reste des pièces possibles
+                                total_prob = sum(certainties.values())
+                                if total_prob > 0:
                                     for p in certainties:
-                                        certainties[p] /= total
-    
-    ###########################################
-    # * UPDATE OTHER PIECES WHEN CERTAINTY REACHED
-    ###########################################
+                                        certainties[p] /= total_prob
 
     # Clear void positions certainty
     for pos in game_actualization['piece_certainty']:
@@ -242,6 +216,23 @@ def actualize_game_state_with_castling(game_actualization, move_analysis, board)
         'king': game_actualization['piece_certainty'][king_final_pos],
         'rook': game_actualization['piece_certainty'][rook_final_pos]
     }
+
+
+    ###########################################
+    # * UPDATE OTHER PIECES WHEN CERTAINTY REACHED
+    ###########################################
+
+    for pos, certainties in game_actualization['piece_certainty'].items():
+        if pos != king_final_pos and color + '_king' in certainties:
+            del certainties[color + '_king']
+
+    for pos, certainties in game_actualization['piece_certainty'].items():
+
+        if IDENTIFIED_PIECES[color + '_rook'] >= PIECES_COUNT['rook']:
+            if pos != rook_final_pos and color + '_rook' in certainties and certainties[color + '_rook'] < 0.99:
+                del certainties[color + '_rook']
+
+    
 
     # Clear void positions certainty
     for pos in game_actualization['piece_certainty']:

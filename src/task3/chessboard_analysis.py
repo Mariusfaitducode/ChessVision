@@ -115,10 +115,10 @@ def analyze_chess_board(frame):
 
             # For visualization, also draw the analyzed inner area
             
-            img = cv2.rectangle(img, 
-                        (inner_left, inner_top), 
-                        (inner_right, inner_bottom), 
-                        (128, 128, 128), 1)  # Gray rectangle to show analyzed area
+            # img = cv2.rectangle(img, 
+            #             (inner_left, inner_top), 
+            #             (inner_right, inner_bottom), 
+            #             (128, 128, 128), 1)  # Gray rectangle to show analyzed area
             
     if len(occupied_squares) > 0:
         piece_colors = classify_pieces(occupied_squares, debug=False)
@@ -205,9 +205,9 @@ def display_game_state(square_results, stats_results, img, filtered_img, current
                 cv2.putText(img_display, text, (left + 5, top + 20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2)
                 # Addtext
-            text = f"{stats['edge_percentage']:.2f} -- {stats['pixel_variance']:.2f}%"
-            cv2.putText(img_display, text, (left + 5, top + 80),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 1)
+            # text = f"{stats['edge_percentage']:.2f} -- {stats['pixel_variance']:.2f}%"
+            # cv2.putText(img_display, text, (left + 5, top + 80),
+            #         cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 1)
             
     return img_display
 

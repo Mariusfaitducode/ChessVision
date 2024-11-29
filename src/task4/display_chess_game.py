@@ -8,6 +8,15 @@ import cv2
 
 #     return utils.NUM_TO_PIECE[piece_name]
 
+PIECES_TO_LETTER = {
+    "pawn": "P",
+    "rook": "R",
+    "knight": "N",
+    "bishop": "B",
+    "king": "K",
+    "queen": "Q",
+}
+
 
 def display_chess_game_2d(img_display, game_actualization):
 
@@ -26,7 +35,14 @@ def display_chess_game_2d(img_display, game_actualization):
 
             certainties = game_actualization['piece_certainty'][(j, i)]
 
-            CERTAINTY_THRESHOLD = 0.6
+            letter_pieces = [PIECES_TO_LETTER[p.split('_')[1]] for p in certainties.keys()]
+
+            letter_pieces = ', '.join(letter_pieces)
+
+            cv2.putText(img_display, f"{letter_pieces}", (left + 5, top + 80),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 0, 0), 2)
+
+            CERTAINTY_THRESHOLD = 0.7
             for piece, prob in certainties.items():
                 if prob > CERTAINTY_THRESHOLD:
                     piece_image = utils.piece_images[piece]
@@ -54,7 +70,19 @@ def display_chess_game_2d(img_display, game_actualization):
                     img_display[top:top+square_h, left:left+square_w] = blended
 
                     cv2.putText(img_display, f"{prob:.2f}", (left + 60, top+ 20),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2)
+
+                    letter_pieces = [PIECES_TO_LETTER[p.split('_')[1]] for p in certainties.keys()]
+
+                    letter_pieces = ', '.join(letter_pieces)
+
+                    cv2.putText(img_display, f"{letter_pieces}", (left + 5, top + 80),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 2)
+                    
+                
+                
+                
+
 
     return img_display
 
