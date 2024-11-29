@@ -1,9 +1,7 @@
 import cv2
 import numpy as np
 
-from utils import *
-
-from stickers_detection import detect_stickers, draw_stickers
+from task2.utils import *
 
 
 

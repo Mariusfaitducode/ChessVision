@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from utils import *
+from task2.utils import *
 
 def estimate_corners_movement(prev_grid, prev_mask, curr_frame, prev_frame, debug=False):
     """

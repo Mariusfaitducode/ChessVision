@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from tqdm import tqdm
 
-from utils import find_corners_with_timeout, resize_frame
+from task2.utils import find_corners_with_timeout, resize_frame
 
 
 def compute_homography(corners, board_size=(7, 7), square_size=100):

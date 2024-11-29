@@ -184,7 +184,19 @@ def analyze_move(prev_state, curr_state, potential_castling=None, game_actualiza
                 elif castling_result == 'potential_castling':
                     potential_castling = potential_result
 
-            valid_pieces = verify_movement(prev_state, initial_pos, final_pos)
+            potential_pieces = verify_movement(prev_state, initial_pos, final_pos)
+
+            previous_pieces = game_actualization['piece_certainty'][initial_pos]
+
+            print('potential_pieces', potential_pieces)
+            print('previous_pieces', previous_pieces)
+
+            valid_pieces = []
+            for piece in potential_pieces:
+                if piece in previous_pieces:
+                    valid_pieces.append(piece)
+
+            print('valid_pieces', valid_pieces)
 
             if len(valid_pieces) > 0:
                 valid_movements.append((combination, valid_pieces))
