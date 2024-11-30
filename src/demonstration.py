@@ -71,7 +71,7 @@ def process_video(video_path):
         'labeled_corners': None,
     }
 
-    vertices, faces = load_chess_piece()
+    # vertices, faces = load_chess_piece()
 
     last_game_state = None
     actualized_game_state = {}
