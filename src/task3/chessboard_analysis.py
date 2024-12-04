@@ -3,12 +3,15 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import json
-from skimage.filters import sobel
 
-from case_analysis import detect_if_case_is_occupied, detect_piece_color
-from case_color_analysis import classify_pieces
+import sys
+from pathlib import Path
 
+project_root = Path(__file__).parent.parent 
+sys.path.append(str(project_root))
 
+from task3.case_analysis import detect_if_case_is_occupied, detect_piece_color
+from task3.case_color_analysis import classify_pieces
 
 def analyze_chess_board(frame):
     # Read the image
@@ -85,8 +88,6 @@ def analyze_chess_board(frame):
             
             if is_occupied:
 
-                # Convert to RGB Image
-                img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 # Extract the inner square region for color analysis
                 piece_region = gray[inner_top:inner_bottom, inner_left:inner_right]
                 
@@ -114,13 +115,13 @@ def analyze_chess_board(frame):
 
             # For visualization, also draw the analyzed inner area
             
-            img = cv2.rectangle(img, 
-                        (inner_left, inner_top), 
-                        (inner_right, inner_bottom), 
-                        (128, 128, 128), 1)  # Gray rectangle to show analyzed area
+            # img = cv2.rectangle(img, 
+            #             (inner_left, inner_top), 
+            #             (inner_right, inner_bottom), 
+            #             (128, 128, 128), 1)  # Gray rectangle to show analyzed area
             
     if len(occupied_squares) > 0:
-        piece_colors = classify_pieces(occupied_squares, debug=True)
+        piece_colors = classify_pieces(occupied_squares, debug=False)
 
     # Mettre à jour square_results avec les couleurs des pièces
     for square_name, piece_info in square_results.items():
@@ -132,6 +133,83 @@ def analyze_chess_board(frame):
         'blurred': blurred,
         'edges': edges,
     }, square_stats
+
+
+
+def retrieve_game_state(square_results, last_game_state=None):
+
+    game_state = np.zeros((8, 8), dtype=int)
+
+    for i in range(8):
+        for j in range(8):
+            square_name = f"{chr(65+j)}{8-i}"
+            square_result = square_results[square_name]
+            is_occupied = square_result['is_occupied']
+            piece_color = square_result['piece_color']
+
+            if is_occupied is True:
+
+                if piece_color is not None:
+
+                    if piece_color == 'black':
+                        game_state[i, j] = -7
+                    else:
+                        game_state[i, j] = 7
+
+                elif last_game_state is not None:
+                    game_state[i, j] = last_game_state[i, j]
+
+    return game_state.tolist()
+
+
+
+def display_game_state(square_results, stats_results, img, filtered_img, current_view='original'):
+
+
+    # Select image to display based on current view
+    if current_view == 'original':
+        img_display = img.copy()
+    else:
+        img_display = cv2.cvtColor(filtered_img[current_view], cv2.COLOR_GRAY2BGR)
+    
+    # Chessboard dimensions
+    height, width = img_display.shape[:2]
+    square_h = height // 8
+    square_w = width // 8
+    
+    # Draw rectangles and add text
+    for i in range(8):
+        for j in range(8):
+            top = i * square_h
+            left = j * square_w
+            bottom = (i + 1) * square_h - 2
+            right = (j + 1) * square_w - 2
+            
+            square_name = f"{chr(72-i)}{8-j}"
+
+            square_result = square_results[square_name]
+
+            is_occupied = square_result['is_occupied']
+            piece_color = square_result['piece_color']
+            
+            stats = stats_results[square_name]
+            
+            # Green for occupied squares, red for empty ones
+            if is_occupied:
+                cv2.rectangle(img_display, (left, top), (right, bottom), (0, 255, 0), 2)
+            
+            piece_peak = stats['piece_peak']
+
+            if piece_color is not None:
+                text = f"{piece_color}"
+                cv2.putText(img_display, text, (left + 5, top + 20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2)
+                # Addtext
+            # text = f"{stats['edge_percentage']:.2f} -- {stats['pixel_variance']:.2f}%"
+            # cv2.putText(img_display, text, (left + 5, top + 80),
+            #         cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 1)
+            
+    return img_display
 
 
 
@@ -176,39 +254,11 @@ def analyze_all_images(folder_path):
         
         # Retrieve datas
 
-        game_state = np.zeros((8, 8), dtype=int)
-
-        for i in range(8):
-            for j in range(8):
-                square_name = f"{chr(65+j)}{8-i}"
-                square_result = result['square_results'][square_name]
-
-                is_occupied = square_result['is_occupied']
-
-                piece_color = square_result['piece_color']
-
-                # if current_image == 'warped_frame_000800.png':
-                #     print(square_name, result['square_results'][square_name])
-
-                if is_occupied is True:
-
-                    if piece_color is not None:
-
-                        if piece_color == 'black':
-                            game_state[i, j] = -7
-                        else:
-                            game_state[i, j] = 7
-
-                    elif last_game_state is not None:
-                        game_state[i, j] = last_game_state[i, j]
-
-        # if current_image == 'warped_frame_000800.png':
-            # print(result['square_results'][square_name])
-            # print(game_state)
+        game_state = retrieve_game_state(result['square_results'], last_game_state)
 
         state = {
             'frame': current_image,
-            'gs': game_state.tolist()
+            'gs': game_state
         }
 
         data['game_states'].append(state)
@@ -226,57 +276,8 @@ def analyze_all_images(folder_path):
     while True:
         current_image = image_names[current_idx]
         result = results[current_image]
-        
-        # Select image to display based on current view
-        if current_view == 'original':
-            img_display = result['image'].copy()
-        else:
-            img_display = cv2.cvtColor(result['filtered'][current_view], cv2.COLOR_GRAY2BGR)
-        
-        # Chessboard dimensions
-        height, width = img_display.shape[:2]
-        square_h = height // 8
-        square_w = width // 8
-        
-        # Draw rectangles and add text
-        for i in range(8):
-            for j in range(8):
-                top = i * square_h
-                left = j * square_w
-                bottom = (i + 1) * square_h - 2
-                right = (j + 1) * square_w - 2
-                
-                square_name = f"{chr(72-i)}{8-j}"
 
-                square_result = result['square_results'][square_name]
-
-                is_occupied = square_result['is_occupied']
-                piece_color = square_result['piece_color']
-                
-                stats = result['stats'][square_name]
-                
-                # Green for occupied squares, red for empty ones
-                color = (0, 255, 0) if is_occupied else (0, 0, 255)
-                cv2.rectangle(img_display, (left, top), (right, bottom), color, 2)
-                
-                piece_peak = stats['piece_peak']
-
-                if piece_color is not None:
-                    text = f"{piece_color}"
-                    cv2.putText(img_display, text, (left + 5, top + 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2)
-                    # Addtext
-                text = f"{stats['edge_percentage']:.2f} -- {stats['pixel_variance']:.2f}%"
-                cv2.putText(img_display, text, (left + 5, top + 80),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 1)
-                
-
-        
-
-        # with open('game_state.json', 'w') as f:
-        #     json.dump(state, f)
-
-        
+        img_display = display_game_state(result['square_results'], result['stats'], result['image'], result['filtered'])
                 
 
         ###########################################
