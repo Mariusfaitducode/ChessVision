@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 # Task2
-
+from task2.camera_calibration import *
 from task2.corners_detection import *
 from task2.corners_tracking2 import *
 from task2.stickers_detection import *
@@ -47,11 +47,16 @@ def process_video(video_path):
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = int(cap.get(cv2.CAP_PROP_FPS))
 
+    # Chessboard parameters
+    chessboard_size = (7, 7)
+    # Camera calibration
+    calibrate_camera_from_video(video_path, chessboard_size, frame_interval=1000, show_process=False)
+
     # Frame parameters
     frame_count = 0
     frame_interval = 25
-    frame_save_interval = 50
-    
+    frame_save_interval = 25
+
     # Cache to store the last valid detections
     cache = {
         'frame': None,
@@ -76,6 +81,7 @@ def process_video(video_path):
     last_game_state = None
     actualized_game_state = {}
     potential_castling = None
+    board = None
 
     skip_moment = False
 
@@ -86,6 +92,7 @@ def process_video(video_path):
     # Dictionnaire pour stocker l'historique des états
     game_history = {}  # frame_count sera la clé principale
     last_frame_analyzed = 0
+    data = {'game_states': []}
 
     while True:
         if not paused:
@@ -184,9 +191,6 @@ def process_video(video_path):
             cache['labeled_corners'] = labeled_corners if all(corner is not None for corner in labeled_corners.values()) else cache['labeled_corners']
 
 
-        
-
-
         ###########################################
         # * VISUALIZATION
         ###########################################
@@ -237,17 +241,18 @@ def process_video(video_path):
                 img_display = display_game_state(square_results, stats, img, filtered_images)
 
 
-                state = {
-                    'frame': frame_count,
-                    'gs': game_state
-                }
-
+                # state = {
+                #     'frame': frame_count,
+                #     'gs': game_state
+                # }
 
                 #########################################
                 # * GAME STATE ANALYSIS
                 #########################################
 
                 curr_state = np.fliplr(game_state.copy())
+                # json_board = curr_state.tolist()
+                json_board = None
 
                 if last_game_state is None and curr_state is not None:
 
@@ -264,6 +269,7 @@ def process_video(video_path):
 
                     # * If move is valid
                     if move_analysis['valid']:
+                        print("Valid")
 
                         # * Move is valid with error correction
                         if move_analysis['move_type'] != 'castling' and move_analysis['error_pos'] is not None:
@@ -278,11 +284,11 @@ def process_video(video_path):
                         if move_analysis['move_type'] == 'castling':
 
                             actualized_game_state, board, piece_certainty = actualize_game_state_with_castling(actualized_game_state, move_analysis, curr_state)
-
+                            json_board = board.tolist()
                         else:
                             # * Move is valid 
                             actualized_game_state, board, piece_certainty = actualize_game_state(actualized_game_state, move_analysis, curr_state)
-                            
+                            json_board = board.tolist()
                             from_pos = move_analysis['from_pos']
                             to_pos = move_analysis['to_pos']
                             
@@ -313,16 +319,25 @@ def process_video(video_path):
                     'game_state': curr_state.copy() if curr_state is not None else None,
                     'actualized_state': actualized_game_state.copy() if actualized_game_state else None
                 }
+
                 print(f"Saved frame {frame_count} to history")
 
+                state = {
+                    'frame': frame_count,
+                    'game_state': json_board if json_board is not None else None,
+                }
+                data['game_states'].append(state)
 
+            # Save all game states to a JSON file
+            with open('game_state.json', 'w') as f:
+                try:
+                    json.dump(data['game_states'], f, indent=4)
+                    print("Game states saved successfully!")
+                except TypeError as e:
+                    print(f"Error while saving JSON: {e}")
 
             # data['game_states'].append(state)
             # last_game_state = curr_state
-
-
-        
-
 
         ###########################################
         # * HOMOGRAPHY AND POSE ESTIMATION
@@ -366,7 +381,7 @@ def process_video(video_path):
 
             
 
-            frame = display_chess_game_3d(frame, params, actualized_game_state)
+            # frame = display_chess_game_3d(frame, params, actualized_game_state)
 
             # Garder l'affichage des axes si souhaité
             frame = draw_axis(frame, cache['rvec'], cache['tvec'])
@@ -432,6 +447,6 @@ if __name__ == "__main__":
                   '-master/project/task2/videos/moving_2.mov')  # Remplacez par le chemin de votre vidéo
     
 
-    video_path = 'videos/moving_game.mov'
+    video_path = 'videos/fix_group4_1.MOV'
 
     process_video(video_path)

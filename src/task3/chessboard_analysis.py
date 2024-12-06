@@ -82,7 +82,6 @@ def analyze_chess_board(frame):
             inner_right = right - margin_w
             
             is_occupied, edge_percentage, pixel_variance = detect_if_case_is_occupied(edges, blurred, inner_top, inner_left, inner_bottom, inner_right)
-
             piece_color = None
             piece_peak = None
             
@@ -157,7 +156,8 @@ def retrieve_game_state(square_results, last_game_state=None):
                         game_state[i, j] = 7
 
                 elif last_game_state is not None:
-                    game_state[i, j] = last_game_state[i, j]
+                    last_game_state = np.array(last_game_state)
+                    game_state[i, j] = last_game_state[i,j]
 
     return game_state.tolist()
 
@@ -306,5 +306,5 @@ def analyze_all_images(folder_path):
 
 
 if __name__ == "__main__":
-    folder_path = "images_results/warped_images"
+    folder_path = "warped_images_fix_2"
     results = analyze_all_images(folder_path)

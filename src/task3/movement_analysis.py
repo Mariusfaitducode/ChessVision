@@ -1,5 +1,9 @@
 import numpy as np
 
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
 from task3.piece_movement import *
 from task3.castling_movement import *
 
@@ -47,8 +51,6 @@ def verify_movement(prev_state, initial_pos, final_pos):
     
 
     # Vérification des mouvements standards
-    if final_pos in pawn_movement(initial_pos, prev_state):
-        valid_movements.append(f"{'white' if color > 0 else 'black'}_pawn")
 
     if final_pos in rook_movement(initial_pos, prev_state):
         valid_movements.append(f"{'white' if color > 0 else 'black'}_rook")
@@ -64,8 +66,9 @@ def verify_movement(prev_state, initial_pos, final_pos):
 
     if final_pos in king_movement(initial_pos, prev_state):
         valid_movements.append(f"{'white' if color > 0 else 'black'}_king")
-        
-    
+
+    if final_pos in pawn_movement(initial_pos, prev_state):
+        valid_movements.append(f"{'white' if color > 0 else 'black'}_pawn")
 
 
     return valid_movements

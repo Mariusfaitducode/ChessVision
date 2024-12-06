@@ -36,7 +36,7 @@ def process_video(video_path):
     frame_count = 0
     frame_interval = 25
 
-    frame_save_interval = 50
+    frame_save_interval = 25
     
     # Cache to store the last valid detections
     cache = {
@@ -244,6 +244,8 @@ def process_video(video_path):
         
         # Save every 100th frame
         os.makedirs('images_1', exist_ok=True)
+        os.makedirs("images_results/warped_images", exist_ok=True)
+        os.makedirs("images_results/frames", exist_ok=True)
         if frame_count % frame_save_interval == 0 or skip_moment:
             if frame is not None:
                 frame_name = f"frame_{frame_count:06d}.png"
@@ -270,6 +272,6 @@ if __name__ == "__main__":
                   '-master/project/task2/videos/moving_2.mov')  # Remplacez par le chemin de votre vidéo
     
 
-    video_path = 'videos/moving_game.mov'
+    video_path = 'videos/fix_group4_1.MOV'
 
     process_video(video_path)

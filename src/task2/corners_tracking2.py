@@ -4,19 +4,19 @@ from task2.utils import *
 
 def estimate_corners_movement(prev_grid, prev_mask, curr_frame, prev_frame, debug=False):
     """
-    Estime la position des coins en utilisant uniquement les points fiables de la frame précédente.
-    
+    Estimates the position of the corners using only the reliable points of the previous frame.
+
     Args:
-        prev_grid: Grille précédente (9x9x2)
-        prev_mask: Masque des points fiables de prev_grid (9x9 bool)
-        curr_frame: Frame courante
-        prev_frame: Frame précédente
-        debug: Afficher la visualisation du tracking
-    
+    prev_grid: Previous grid (9x9x2)
+    prev_mask: Mask of the reliable points of prev_grid (9x9 bool)
+    curr_frame: Current frame
+    prev_frame: Previous frame
+    debug: Show tracking visualization
+
     Returns:
-        corners: Les 4 coins du plateau (4x2) ou None
-        new_grid: Grille mise à jour avec les nouveaux points (9x9x2)
-        new_mask: Nouveau masque des points fiables (9x9 bool)
+    corners: The 4 corners of the board (4x2) or None
+    new_grid: Grid updated with the new points (9x9x2)
+    new_mask: New mask of the reliable points (9x9 bool)
     """
     if prev_frame is None or prev_grid is None:
         return None, None, None
@@ -193,7 +193,7 @@ def extract_border_points(grid, mask):
     
     # Top border
     for j in range(grid.shape[1]):
-        if mask[0, j]:
+        if mask[0, j] is not None and mask[0, j]:
             points.append(grid[0, j])
             border_info.append(0)
             point_positions.append((0, j))

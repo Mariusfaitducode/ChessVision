@@ -42,16 +42,16 @@ def detect_corners(img, chessboard_size = (7, 7)):
 
 def detect_all_chessboard_corners(img, corners, chessboard_size=(7, 7)):
     """
-    Détecte tous les coins du plateau d'échecs (8x8 cases) à partir des coins intérieurs détectés.
-    
+    Detects all corners of the chessboard (8x8 squares) from the detected inner corners.
+
     Args:
-        img: Image source
-        corners: Coins détectés par cv2.findChessboardCorners (7x7 points)
-        chessboard_size: Taille du plateau intérieur (par défaut 7x7)
-    
+    img: Image source
+    corners: Corners detected by cv2.findChessboardCorners (7x7 points)
+    chessboard_size: Inner board size (default 7x7)
+
     Returns:
-        - np.array de forme (8, 8, 4, 2) contenant les coordonnées des 4 coins de chaque case
-        - liste des 4 coins extrêmes [a1, a8, h1, h8]
+    - np.array of shape (8, 8, 4, 2) containing the coordinates of the 4 corners of each square
+    - list of the 4 extreme corners [a1, a8, h1, h8]
     """
     if corners is None:
         return None, None, None

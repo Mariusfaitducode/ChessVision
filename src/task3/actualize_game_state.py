@@ -64,28 +64,28 @@ def initialize_game_state(game_state):
 
 def actualize_game_state(game_actualization, move_analysis, board):
     """
-    Met à jour notre connaissance du jeu en fonction du mouvement analysé.
-    
+    Updates our knowledge of the game based on the analyzed move.
+
     Args:
-        game_state (dict): État actuel de nos connaissances avec:
-            - board (np.array): État du plateau
-            - piece_certainty (dict): Dictionnaire de certitude pour chaque position
-              format: {(row, col): {piece_type: probability}}
-        move_analysis (dict): Résultat de l'analyse du mouvement avec:
-            - valid (bool): si le mouvement est valide
-            - from_pos (tuple): position de départ
-            - to_pos (tuple): position d'arrivée
-            - valid_pieces (list): liste des pièces possibles pour ce mouvement
-        board (np.array): État actuel du plateau de jeu
-    
+    game_state (dict): Current state of our knowledge with:
+    - board (np.array): State of the board
+    - piece_certainty (dict): Dictionary of certainty for each position
+    format: {(row, col): {piece_type: probability}}
+    move_analysis (dict): Result of the move analysis with:
+    - valid (bool): whether the move is valid
+    - from_pos (tuple): starting position
+    - to_pos (tuple): ending position
+    - valid_pieces (list): list of possible pieces for this move
+    board (np.array): Current state of the game board
+
     Returns:
-        tuple: (game_state mis à jour, board mis à jour)
+    tuple: (game_state updated, board updated)
     """
-    # Si le mouvement n'est pas valide, ne rien mettre à jour
+    # If the move is not valid, do not update anything
     if not move_analysis['valid']:
         return game_actualization
     
-    # Si c'est le premier appel, initialiser le dictionnaire de certitude
+    # If this is the first call, initialize the certainty dictionary
     if 'piece_certainty' not in game_actualization:
         game_actualization['piece_certainty'] = {}
     

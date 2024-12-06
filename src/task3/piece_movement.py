@@ -13,19 +13,21 @@ def pawn_movement(position, game_state):
     if (color > 0): # White pawn
 
         # Move forward
-        if (game_state[row+1, col] == 0):
-            possible_moves.append((row+1, col))
+        try:
+            if (game_state[row+1, col] == 0):
+                possible_moves.append((row+1, col))
 
-        # Move forward two squares on pawn first move
-        if (game_state[row+2, col] == 0 and row == 1):
-            possible_moves.append((row+2, col))
-        
-        # Capture diagonally
-        if (is_on_board((row+1, col-1)) and game_state[row+1, col-1] < 0): 
-            possible_moves.append((row+1, col-1))
-        if (is_on_board((row+1, col+1)) and game_state[row+1, col+1] < 0):
-            possible_moves.append((row+1, col+1))
+            # Move forward two squares on pawn first move
+            if (game_state[row+2, col] == 0 and row == 1):
+                possible_moves.append((row+2, col))
 
+            # Capture diagonally
+            if (is_on_board((row+1, col-1)) and game_state[row+1, col-1] < 0):
+                possible_moves.append((row+1, col-1))
+            if (is_on_board((row+1, col+1)) and game_state[row+1, col+1] < 0):
+                possible_moves.append((row+1, col+1))
+        except:
+            pass
     elif (color < 0): # Black pawn
 
         # Move forward
