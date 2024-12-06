@@ -3,7 +3,7 @@ In the following code, we provide a summary of the project structure and instruc
 The code can be run separately for each task, and for running the whole project, it's necessary to use \texttt{demonstration.py}
 
 # Task 2
-In this task it was necessary to omplement techniques for calibrating a chessboard and detecting its corners and stickers using video input. The goal is to identify the sides of the chessboard in the fixed and moving positions.
+In this task, it was necessary to implement techniques for calibrating a chessboard and detecting its corners and stickers using video input. The goal is to identify the sides of the chessboard in the fixed and moving positions.
 
 We then compute and draw 4 corners and annotations to them and detected stickers which help to identify the side of the board and label the corners, saving annotated images every 25th frame.
 
@@ -11,9 +11,9 @@ To do this, we used the functions provided in the project. To analyze the video,
 
 To get the results of images with corners it's necessary to run camera_calibration.py to calibrate the camera, and then video_analysis.py to process the video. To do so, it's required to write the path in both files to the video.
 ### Code Structure
-At first, we use function \texttt{detect_stickers} (\texttt{stickers_detection}) to detect the stickers, which is based on the color thresholding and masking the image with the correspoing range of colors. We then \texttt{draw_stickers} to draw the stickers on the chessboard
+At first, we use the function `detect_stickers` (`stickers_detection`) to detect the stickers, which is based on the color thresholding and masking the image with the correspoing range of colors. We then \texttt{draw_stickers} to draw the stickers on the chessboard
 Then, we use function \texttt{detect_corners} to detect the corners of the chessboard, which is based on the \texttt{detect_chessboard_corners} function and refine them using \texttt{cv2.cornerSubPix()}, that finds the sub-pixel accurate location of the corners.
-To detect all corners of a chessboard (8x8 squares) from the detected inner corners we use \texttt{detect_all_chessboard_corners}. It takes an image, detected inner corners, and the inner board size as input, and returns the coordinates of the 4 corners of each square and the 4 extreme corners of the chessboard.
+To detect all corners of a chessboard (8x8 squares) from the detected inner corners we use \texttt{detect_all_chessboard_corners}. It takes an image, detects inner corners, and the inner board size as input, and returns the coordinates of the 4 corners of each square and the 4 extreme corners of the chessboard.
 It does this by extrapolating the outer edges of the chessboard based on the detected inner corners, and then calculating the coordinates of the corners of each square. That all can be seen in the \texttt{corners_detection.py} file.
 Then, to fix the corners within the movement for moving videos, there was used \texttt{estimate_corners_movement}, that estimates the movement of the corners of a chessboard between two frames of a video.
 Which returs updated corners and a new grid. And then we used \texttt{label_corners} to label the corners of the chessboard, and finally computed homography matrix.
