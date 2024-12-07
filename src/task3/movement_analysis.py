@@ -148,7 +148,7 @@ def analyze_move(prev_state, curr_state, potential_castling=None, game_actualiza
     # * MOVEMENT ANALYSIS
     ###########################################
 
-    if len(positions) == 2 or len(positions) == 3:
+    if len(positions) == 2 or len(positions) == 3 or len(positions) == 4:
 
         print('MOVEMENT ANALYSIS')
         
@@ -201,7 +201,10 @@ def analyze_move(prev_state, curr_state, potential_castling=None, game_actualiza
 
             print('valid_pieces', valid_pieces)
 
-            if len(valid_pieces) > 0:
+            if len(potential_pieces) == 1:
+                valid_movements.append((combination, potential_pieces))
+                print(f"Automatically considering piece: {potential_pieces[0]} for {combination}")
+            elif len(valid_pieces) > 0:
                 valid_movements.append((combination, valid_pieces))
 
         print('valid_movements', valid_movements)
@@ -232,14 +235,61 @@ def analyze_move(prev_state, curr_state, potential_castling=None, game_actualiza
                 'valid_pieces': valid_pieces,
                 'error_pos': error_pos
             }, potential_castling
-        
+
         elif len(valid_movements) > 1:
+            def prioritize_moves(movements):
+                # Sort by piece priority (you can adjust this order based on preference)
+                piece_priority = {
+                    'white_king': 1,
+                    'white_queen': 2,
+                    'white_rook': 3,
+                    'white_bishop': 4,
+                    'white_knight': 5,
+                    'white_pawn': 6,
+                    'black_king': 1,
+                    'black_queen': 2,
+                    'black_rook': 3,
+                    'black_bishop': 4,
+                    'black_knight': 5,
+                    'black_pawn': 6
+                }
+
+                prioritized = sorted(
+                    movements,
+                    key=lambda mv: min(piece_priority.get(piece, 10) for piece in mv[1])  # Lowest priority wins
+                )
+                return prioritized[0]  # Select the highest-priority move
+
+            # Select the best move based on priority
+            best_move = prioritize_moves(valid_movements)
+            combination = best_move[0]
+            valid_pieces = best_move[1]
+
+            move = 'move' if prev_state[combination[1]] == 0 else 'capture'
+
+            # Find the position that is not part of the valid combination
+            error_pos = None
+            for pos in positions:
+                if pos not in combination:
+                    error_pos = pos
+                    break
+
+            return {
+                'valid': True,
+                'move_type': move,
+                'from_pos': combination[0],
+                'to_pos': combination[1],
+                'piece': prev_state[combination[0]],
+                'valid_pieces': valid_pieces,
+                'error_pos': error_pos
+            }, potential_castling
+
+        else:
             return {
                 'valid': False,
                 'move_type': 'invalid',
-                'message': 'Too much valid movements found'
+                'message': 'Potential hand movement detected'
             }, potential_castling
-        
 
     else:
         return {
