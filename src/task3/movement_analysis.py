@@ -223,6 +223,16 @@ def analyze_move(prev_state, curr_state, potential_castling=None, game_actualiza
                     error_pos = pos
                     break
 
+            if len(potential_pieces) == 1:
+                return {
+                    'valid': True,
+                    'move_type': move,
+                    'from_pos': combination[0],
+                    'to_pos': combination[1],
+                    'piece': prev_state[combination[0]],
+                    'valid_pieces': potential_pieces,
+                    'error_pos': error_pos
+                }, potential_castling
             # # Correct the error
             # curr_state[error_pos] = prev_state[error_pos]
 

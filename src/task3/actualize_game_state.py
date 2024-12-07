@@ -82,6 +82,7 @@ def actualize_game_state(game_actualization, move_analysis, board):
     tuple: (game_state updated, board updated)
     """
     # If the move is not valid, do not update anything
+    global base_probabilities
     if not move_analysis['valid']:
         return game_actualization
     
@@ -110,7 +111,8 @@ def actualize_game_state(game_actualization, move_analysis, board):
         
         # Normaliser les poids pour obtenir des probabilités
         total_weight = sum(weights)
-        base_probabilities = [w / total_weight for w in weights]
+        if total_weight > 0:
+            base_probabilities = [w / total_weight for w in weights]
         
         # Sauvegarder les probabilités de la position de départ
         # pour les utiliser dans la mise à jour
