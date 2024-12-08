@@ -247,8 +247,9 @@ def analyze_move(prev_state, curr_state, potential_castling=None, game_actualiza
             }, potential_castling
 
         elif len(valid_movements) > 1:
-            def prioritize_moves(movements):
-                # Sort by piece priority (you can adjust this order based on preference)
+                # Prioritize moves based on the piece's value or type, accounting for both colors
+            def prioritize_moves(movements, prev_state):
+                # Define priority values for both white and black pieces
                 piece_priority = {
                     'white_king': 1,
                     'white_queen': 2,
@@ -264,20 +265,38 @@ def analyze_move(prev_state, curr_state, potential_castling=None, game_actualiza
                     'black_pawn': 6
                 }
 
+                def get_piece_name(position):
+                    piece_value = prev_state[position]
+                    if piece_value > 0:
+                        color = 'white'
+                    else:
+                        color = 'black'
+                    piece_type = {
+                        1: 'pawn',
+                        2: 'knight',
+                        3: 'bishop',
+                        4: 'rook',
+                        5: 'queen',
+                        6: 'king'
+                    }.get(abs(piece_value), 'unknown')
+                    return f"{color}_{piece_type}"
+
                 prioritized = sorted(
                     movements,
-                    key=lambda mv: min(piece_priority.get(piece, 10) for piece in mv[1])  # Lowest priority wins
+                    key=lambda mv: min(
+                        piece_priority.get(get_piece_name(mv[0][0]), 10)
+                        for piece in mv[1]
+                    )
                 )
                 return prioritized[0]  # Select the highest-priority move
 
             # Select the best move based on priority
-            best_move = prioritize_moves(valid_movements)
+            best_move = prioritize_moves(valid_movements, prev_state)
             combination = best_move[0]
             valid_pieces = best_move[1]
 
             move = 'move' if prev_state[combination[1]] == 0 else 'capture'
 
-            # Find the position that is not part of the valid combination
             error_pos = None
             for pos in positions:
                 if pos not in combination:
@@ -308,8 +327,8 @@ def analyze_move(prev_state, curr_state, potential_castling=None, game_actualiza
             'message': 'Too much positions changed'
         }, potential_castling
     
-    return {
-        'valid': False,
-        'move_type': 'invalid',
-        'message': 'Unrecognized move pattern'
-    }, potential_castling
+    # return {
+    #     'valid': False,
+    #     'move_type': 'invalid',
+    #     'message': 'Unrecognized move pattern'
+    # }, potential_castling
