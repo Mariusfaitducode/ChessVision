@@ -25,6 +25,7 @@ To run the code it's necessary to use `chessboard_analysis.py` with the wrapped 
 The output is a .json file with the frame number and corresponding movement of the pieces on the board for this frame. To actualize the movements it's necessary to use `game_analysis.ipynb`.
 
 To get the same result without running `game_analysis.ipynb` file separately, it's possible to use `demonstration.py` to run the whole project with the json file as an output.
+In case of moving_video №1 to get the same results, it's important to discard condition (if len(positions) = 4) in `movement_analysis.py` to get the same results. 
 
 ### Code Structure
 For each image we compute the chessboard, then for each square we analyze if the square is occupied by a piece using the `detect_if_case_is_occupied` function
