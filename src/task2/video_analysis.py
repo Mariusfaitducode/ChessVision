@@ -33,7 +33,7 @@ def process_video(video_path):
 
     # Initialize tracking variables
     last_frame_corners_extremities = None
-    frame_count = 0
+    frame_count = 9000
     frame_interval = 25
 
     frame_save_interval = 25
@@ -80,7 +80,9 @@ def process_video(video_path):
         ###########################################
 
         # Detect colored stickers and label corners
-        blue_stickers, pink_stickers = detect_stickers(frame)
+        # blue_stickers, pink_stickers = detect_stickers(frame)
+
+        # print(blue_stickers, pink_stickers)
         
 
         ###########################################
@@ -88,6 +90,8 @@ def process_video(video_path):
         ###########################################
 
         chessboard_corners = detect_corners(frame)
+
+        # print(chessboard_corners)
         
         chessboard_corners_extremities = None
 
@@ -115,6 +119,10 @@ def process_video(video_path):
         else: 
             print("NO CORNERS FOUND")
 
+            skip_moment = True
+
+            if cache['chessboard_corners_extremities'] is None:
+                continue
             # Skip option
 
             chessboard_corners_extremities = cache['chessboard_corners_extremities']
@@ -125,7 +133,7 @@ def process_video(video_path):
 
             # chessboard_corners_extremities = None
 
-            if cache['extended_grid'] is not None and cache['last_frame'] is not None:
+            if cache['extended_grid'] is not None and cache['last_frame'] is not None and cache['extended_mask'] is not None:
 
                 # if cache['extended_mask'] is None:
                     
@@ -168,12 +176,12 @@ def process_video(video_path):
         # TODO : label corners without using stickers
 
         # labeled_corners = None
-        labeled_corners = label_corners(chessboard_corners_refined, blue_stickers, pink_stickers)
+        labeled_corners = label_corners2(chessboard_corners_refined)
         # labeled_corners = label_corners2(chessboard_corners_refined)
 
         # Update cache only with valid detections
-        cache['blue_stickers'] = blue_stickers if blue_stickers else cache['blue_stickers']
-        cache['pink_stickers'] = pink_stickers if pink_stickers else cache['pink_stickers']
+        # cache['blue_stickers'] = blue_stickers if blue_stickers else cache['blue_stickers']
+        # cache['pink_stickers'] = pink_stickers if pink_stickers else cache['pink_stickers']
 
         if labeled_corners is not None:
             cache['labeled_corners'] = labeled_corners if all(corner is not None for corner in labeled_corners.values()) else cache['labeled_corners']
@@ -231,7 +239,9 @@ def process_video(video_path):
         frame = resize_frame(frame, 1200)
         cv2.imshow('frame', frame)
 
-        cv2.imshow('warped_frame', warped_frame)
+        if warped_frame is not None and not skip_moment:
+            # warped_frame = resize_frame(warped_frame, 1200)
+            cv2.imshow('warped_frame', warped_frame)
 
         key = cv2.waitKey(1)
         if key & 0xFF == ord('q'):
@@ -252,9 +262,9 @@ def process_video(video_path):
                 cv2.imwrite(os.path.join('images_results/frames', frame_name), frame)
                 print(f"Saved: {frame_name}")
 
-            if warped_frame is not None:
+            if warped_frame is not None and not skip_moment:
                 warped_frame_name = f"warped_frame_{frame_count:06d}.png"
-                cv2.imwrite(os.path.join('images_results/warped_images', warped_frame_name), warped_frame)
+                cv2.imwrite(os.path.join('images_results/challenge_warped_moving', warped_frame_name), warped_frame)
                 print(f"Saved: {warped_frame_name}")
 
             skip_moment = False
@@ -272,6 +282,6 @@ if __name__ == "__main__":
                   '-master/project/task2/videos/moving_2.mov')  # Remplacez par le chemin de votre vidéo
     
 
-    video_path = 'videos/fix_group4_1.MOV'
+    video_path = 'challenge/challenge_moving.MOV'
 
     process_video(video_path)

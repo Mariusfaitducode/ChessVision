@@ -10,7 +10,7 @@ def pawn_movement(position, game_state):
     row, col = position
     possible_moves = []
 
-    if (color > 0): # White pawn
+    if (color < 0): # White pawn
 
         # Move forward
         try:
@@ -22,13 +22,13 @@ def pawn_movement(position, game_state):
                 possible_moves.append((row+2, col))
 
             # Capture diagonally
-            if (is_on_board((row+1, col-1)) and game_state[row+1, col-1] < 0):
+            if (is_on_board((row+1, col-1)) and game_state[row+1, col-1] > 0):
                 possible_moves.append((row+1, col-1))
-            if (is_on_board((row+1, col+1)) and game_state[row+1, col+1] < 0):
+            if (is_on_board((row+1, col+1)) and game_state[row+1, col+1] > 0):
                 possible_moves.append((row+1, col+1))
         except:
             pass
-    elif (color < 0): # Black pawn
+    elif (color > 0): # Black pawn
 
         # Move forward
         if (game_state[row-1, col] == 0):
@@ -39,9 +39,9 @@ def pawn_movement(position, game_state):
             possible_moves.append((row-2, col))
         
         # Capture diagonally
-        if (is_on_board((row-1, col-1)) and game_state[row-1, col-1] > 0): 
+        if (is_on_board((row-1, col-1)) and game_state[row-1, col-1] < 0): 
             possible_moves.append((row-1, col-1))
-        if (is_on_board((row-1, col+1)) and game_state[row-1, col+1] > 0):
+        if (is_on_board((row-1, col+1)) and game_state[row-1, col+1] < 0):
             possible_moves.append((row-1, col+1))
 
     return possible_moves

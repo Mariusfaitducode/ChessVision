@@ -148,7 +148,7 @@ def analyze_move(prev_state, curr_state, potential_castling=None, game_actualiza
     # * MOVEMENT ANALYSIS
     ###########################################
 
-    if len(positions) == 2 or len(positions) == 3 or len(positions) == 4:
+    if len(positions) == 2 or len(positions) == 3:
 
         print('MOVEMENT ANALYSIS')
         
@@ -211,6 +211,8 @@ def analyze_move(prev_state, curr_state, potential_castling=None, game_actualiza
 
         if len(valid_movements) == 1:
 
+            print('1 VALID MOVEMENT DETECTED')
+
             combination = valid_movements[0][0]
             valid_pieces = valid_movements[0][1]
 
@@ -246,78 +248,78 @@ def analyze_move(prev_state, curr_state, potential_castling=None, game_actualiza
                 'error_pos': error_pos
             }, potential_castling
 
-        elif len(valid_movements) > 1:
-                # Prioritize moves based on the piece's value or type, accounting for both colors
-            def prioritize_moves(movements, prev_state):
-                # Define priority values for both white and black pieces
-                piece_priority = {
-                    'white_king': 1,
-                    'white_queen': 2,
-                    'white_rook': 3,
-                    'white_bishop': 4,
-                    'white_knight': 5,
-                    'white_pawn': 6,
-                    'black_king': 1,
-                    'black_queen': 2,
-                    'black_rook': 3,
-                    'black_bishop': 4,
-                    'black_knight': 5,
-                    'black_pawn': 6
-                }
+        # elif len(valid_movements) > 1:
+        #         # Prioritize moves based on the piece's value or type, accounting for both colors
+        #     def prioritize_moves(movements, prev_state):
+        #         # Define priority values for both white and black pieces
+        #         piece_priority = {
+        #             'white_king': 1,
+        #             'white_queen': 2,
+        #             'white_rook': 3,
+        #             'white_bishop': 4,
+        #             'white_knight': 5,
+        #             'white_pawn': 6,
+        #             'black_king': 1,
+        #             'black_queen': 2,
+        #             'black_rook': 3,
+        #             'black_bishop': 4,
+        #             'black_knight': 5,
+        #             'black_pawn': 6
+        #         }
 
-                def get_piece_name(position):
-                    piece_value = prev_state[position]
-                    if piece_value > 0:
-                        color = 'white'
-                    else:
-                        color = 'black'
-                    piece_type = {
-                        1: 'pawn',
-                        2: 'knight',
-                        3: 'bishop',
-                        4: 'rook',
-                        5: 'queen',
-                        6: 'king'
-                    }.get(abs(piece_value), 'unknown')
-                    return f"{color}_{piece_type}"
+        #         def get_piece_name(position):
+        #             piece_value = prev_state[position]
+        #             if piece_value > 0:
+        #                 color = 'white'
+        #             else:
+        #                 color = 'black'
+        #             piece_type = {
+        #                 1: 'pawn',
+        #                 2: 'knight',
+        #                 3: 'bishop',
+        #                 4: 'rook',
+        #                 5: 'queen',
+        #                 6: 'king'
+        #             }.get(abs(piece_value), 'unknown')
+        #             return f"{color}_{piece_type}"
 
-                prioritized = sorted(
-                    movements,
-                    key=lambda mv: min(
-                        piece_priority.get(get_piece_name(mv[0][0]), 10)
-                        for piece in mv[1]
-                    )
-                )
-                return prioritized[0]  # Select the highest-priority move
+        #         prioritized = sorted(
+        #             movements,
+        #             key=lambda mv: min(
+        #                 piece_priority.get(get_piece_name(mv[0][0]), 10)
+        #                 for piece in mv[1]
+        #             )
+        #         )
+        #         return prioritized[0]  # Select the highest-priority move
 
-            # Select the best move based on priority
-            best_move = prioritize_moves(valid_movements, prev_state)
-            combination = best_move[0]
-            valid_pieces = best_move[1]
+        #     # Select the best move based on priority
+        #     best_move = prioritize_moves(valid_movements, prev_state)
+        #     combination = best_move[0]
+        #     valid_pieces = best_move[1]
 
-            move = 'move' if prev_state[combination[1]] == 0 else 'capture'
+        #     move = 'move' if prev_state[combination[1]] == 0 else 'capture'
 
-            error_pos = None
-            for pos in positions:
-                if pos not in combination:
-                    error_pos = pos
-                    break
+        #     error_pos = None
+        #     for pos in positions:
+        #         if pos not in combination:
+        #             error_pos = pos
+        #             break
 
-            return {
-                'valid': True,
-                'move_type': move,
-                'from_pos': combination[0],
-                'to_pos': combination[1],
-                'piece': prev_state[combination[0]],
-                'valid_pieces': valid_pieces,
-                'error_pos': error_pos
-            }, potential_castling
+        #     return {
+        #         'valid': True,
+        #         'move_type': move,
+        #         'from_pos': combination[0],
+        #         'to_pos': combination[1],
+        #         'piece': prev_state[combination[0]],
+        #         'valid_pieces': valid_pieces,
+        #         'error_pos': error_pos
+        #     }, potential_castling
 
         else:
             return {
                 'valid': False,
                 'move_type': 'invalid',
-                'message': 'Potential hand movement detected'
+                'message': 'Too much positions changed'
             }, potential_castling
 
     else:

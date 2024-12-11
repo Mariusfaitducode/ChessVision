@@ -49,8 +49,9 @@ def analyze_chess_board(frame):
     square_stats = {}
     
     # Define margin (as percentage of square size)
-    margin_percent = 0.15  # 10% margin
-    
+    margin_percent = 0.35  # 10% margin
+
+    margin_percent2 = 0.15
     index = 0
     
     ###########################################
@@ -87,6 +88,16 @@ def analyze_chess_board(frame):
             
             if is_occupied:
 
+                 # Calculate margins in pixels
+                margin_h = int(square_h * margin_percent2)
+                margin_w = int(square_w * margin_percent2)
+                
+                # Analysis zone coordinates (with margins)
+                inner_top = top + margin_h
+                inner_left = left + margin_w
+                inner_bottom = bottom - margin_h
+                inner_right = right - margin_w
+
                 # Extract the inner square region for color analysis
                 piece_region = gray[inner_top:inner_bottom, inner_left:inner_right]
                 
@@ -118,7 +129,10 @@ def analyze_chess_board(frame):
             #             (inner_left, inner_top), 
             #             (inner_right, inner_bottom), 
             #             (128, 128, 128), 1)  # Gray rectangle to show analyzed area
-            
+
+    margin_percent = 0.05 
+
+    
     if len(occupied_squares) > 0:
         piece_colors = classify_pieces(occupied_squares, debug=False)
 
@@ -203,7 +217,7 @@ def display_game_state(square_results, stats_results, img, filtered_img, current
             if piece_color is not None:
                 text = f"{piece_color}"
                 cv2.putText(img_display, text, (left + 5, top + 20),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 2)
                 # Addtext
             # text = f"{stats['edge_percentage']:.2f} -- {stats['pixel_variance']:.2f}%"
             # cv2.putText(img_display, text, (left + 5, top + 80),
@@ -223,6 +237,8 @@ def analyze_all_images(folder_path):
             image_path = os.path.join(folder_path, filename)
 
             frame = cv2.imread(image_path)
+
+            print("frame", filename)
 
             square_results, img, filtered_images, stats = analyze_chess_board(frame)
             results[filename] = {
@@ -306,5 +322,5 @@ def analyze_all_images(folder_path):
 
 
 if __name__ == "__main__":
-    folder_path = "warped_images_fix_2"
+    folder_path = "images_results/challenge_warped_images"
     results = analyze_all_images(folder_path)

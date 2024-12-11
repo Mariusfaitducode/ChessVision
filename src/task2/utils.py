@@ -9,7 +9,7 @@ def find_corners_with_timeout(gray, chessboard_size, flags):
     result_queue = Queue()
     
     def worker():
-        result = cv2.findChessboardCorners(gray, chessboard_size, flags)
+        result = cv2.findChessboardCornersSB(gray, chessboard_size, flags)
         result_queue.put(result)
     
     thread = Thread(target=worker)

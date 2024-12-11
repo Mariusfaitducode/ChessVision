@@ -447,6 +447,6 @@ if __name__ == "__main__":
                   '-master/project/task2/videos/moving_2.mov')  # Remplacez par le chemin de votre vidéo
     
 
-    video_path = 'videos/fix_group4_1.MOV'
+    video_path = 'videos/moving_game.MOV'
 
     process_video(video_path)

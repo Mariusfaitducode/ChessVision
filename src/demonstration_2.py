@@ -130,7 +130,7 @@ def process_video(video_path):
         ###########################################
 
         # Detect colored stickers and label corners
-        blue_stickers, pink_stickers = detect_stickers(frame)
+        # blue_stickers, pink_stickers = detect_stickers(frame)
         
 
         ###########################################
@@ -183,11 +183,11 @@ def process_video(video_path):
         # TODO : label corners without using stickers
 
         # labeled_corners = None
-        labeled_corners = label_corners(chessboard_corners_extremities, blue_stickers, pink_stickers)
+        labeled_corners = label_corners2(chessboard_corners_extremities)
 
         # Update cache only with valid detections
-        cache['blue_stickers'] = blue_stickers if blue_stickers else cache['blue_stickers']
-        cache['pink_stickers'] = pink_stickers if pink_stickers else cache['pink_stickers']
+        # cache['blue_stickers'] = blue_stickers if blue_stickers else cache['blue_stickers']
+        # cache['pink_stickers'] = pink_stickers if pink_stickers else cache['pink_stickers']
 
         if labeled_corners is not None:
             cache['labeled_corners'] = labeled_corners if all(corner is not None for corner in labeled_corners.values()) else cache['labeled_corners']
@@ -339,7 +339,7 @@ def process_video(video_path):
 
 
             # Save all game states to a JSON file
-            with open('game_state.json', 'w') as f:
+            with open('final_game_states.json', 'w') as f:
                 try:
                     json.dump(data['game_states'], f, indent=4)
                     print("Game states saved successfully!")
@@ -391,7 +391,7 @@ def process_video(video_path):
 
             
 
-            # frame = display_chess_game_3d(frame, params, actualized_game_state)
+            frame = display_chess_game_3d(frame, params, actualized_game_state)
 
             # Garder l'affichage des axes si souhaité
             frame = draw_axis(frame, cache['rvec'], cache['tvec'])
@@ -458,5 +458,7 @@ if __name__ == "__main__":
     
 
     video_path = 'videos/fix_2.mov'
+
+    video_path = 'challenge/challenge_fix.MOV'
 
     process_video(video_path)

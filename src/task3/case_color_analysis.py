@@ -45,12 +45,12 @@ def remove_outliers(clusters, features, debug=False):
         # Get features of the current cluster
         cluster_mask = clusters == cluster_id
         cluster_features = features[cluster_mask, 0]
-        print(cluster_features)
+        # print(cluster_features)
 
         # Compute z-scores for each feature
         z_scores = np.abs((cluster_features - np.mean(cluster_features)) /
                           np.std(cluster_features))
-        print(z_scores)
+        # print(z_scores)
 
         # Mark outliers based on z-score threshold
         cluster_outliers = z_scores > 3.0
@@ -68,7 +68,7 @@ def remove_outliers(clusters, features, debug=False):
     return cleaned_features, cleaned_clusters, outliers_mask
 
 
-def classify_pieces(occupied_squares, debug=True):
+def classify_pieces(occupied_squares, debug=False):
     """
     Classifie les pièces en groupes en utilisant K-means
     occupied_squares: liste de tuples (piece_region, is_dark_square, position)
@@ -85,16 +85,25 @@ def classify_pieces(occupied_squares, debug=True):
     features_normalized = (features - np.mean(features, axis=0)) / np.std(features, axis=0)
 
     # Add binary feature based on normalized std threshold
-    std_threshold = np.array([1 if std > 28 else 0 for std in features[:, 1]])
+    std_threshold = np.array([1 if std > 55 else 0 for std in features[:, 1]])
     features_normalized = np.hstack((features_normalized, std_threshold.reshape(-1, 1)))
 
     # print(features_normalized)
 
-    # Appliquer K-means avec 4 clusters
-    gmm = GaussianMixture(n_components=4, covariance_type='full', random_state=42)
+    # Vérifier s'il y a assez d'échantillons pour faire une classification
+    n_samples = len(features_normalized)
+    if n_samples < 2:  # S'il y a moins de 2 échantillons
+        # Retourner un résultat par défaut
+        results = {}
+        for _, _, pos in occupied_squares:
+            results[pos] = None  # ou une valeur par défaut
+        return results
+
+    n_clusters = min(4, n_samples)
+    gmm = GaussianMixture(n_components=n_clusters, covariance_type='full', random_state=42)
     clusters = gmm.fit_predict(features_normalized)
 
-    cleaned_features, cleaned_clusters, outliers_mask = remove_outliers(clusters, features_normalized, debug=True)
+    cleaned_features, cleaned_clusters, outliers_mask = remove_outliers(clusters, features_normalized, debug=False)
 
     if debug:
 

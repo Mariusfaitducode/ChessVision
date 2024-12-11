@@ -14,8 +14,11 @@ def detect_stickers(img, distance_threshold=150):
     blurred = cv2.GaussianBlur(hsv, (15, 15), 0)
 
     # range for blue sticker
-    lower_blue = np.array([90, 98, 182])  # Lower bound in HSV
-    upper_blue = np.array([100, 198, 248])
+    # lower_blue = np.array([90, 98, 182])  # Lower bound in HSV
+    # upper_blue = np.array([100, 198, 248])
+    # range for blue sticker
+    lower_blue = np.array([90, 150, 100])  # Lower bound in HSV
+    upper_blue = np.array([110, 255, 200])
 
     # range for pink sticker
     lower_pink = np.array([140, 100, 100])
