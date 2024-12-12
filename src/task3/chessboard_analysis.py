@@ -1,3 +1,4 @@
+import time
 import cv2
 import numpy as np
 import os
@@ -80,11 +81,16 @@ def analyze_chess_board(frame):
             inner_top = top + margin_h
             inner_left = left + margin_w
             inner_bottom = bottom - margin_h
-            inner_right = right - margin_w
+            inner_right = right - int(square_w * 0.45)
             
             is_occupied, edge_percentage, pixel_variance = detect_if_case_is_occupied(edges, blurred, inner_top, inner_left, inner_bottom, inner_right)
             piece_color = None
             piece_peak = None
+
+            img = cv2.rectangle(img, 
+                        (inner_left, inner_top), 
+                        (inner_right, inner_bottom), 
+                        (128, 128, 128), 1)  # Gray rectangle to show analyzed area
             
             if is_occupied:
 
@@ -125,10 +131,7 @@ def analyze_chess_board(frame):
 
             # For visualization, also draw the analyzed inner area
             
-            # img = cv2.rectangle(img, 
-            #             (inner_left, inner_top), 
-            #             (inner_right, inner_bottom), 
-            #             (128, 128, 128), 1)  # Gray rectangle to show analyzed area
+            
 
     margin_percent = 0.05 
 
@@ -210,18 +213,22 @@ def display_game_state(square_results, stats_results, img, filtered_img, current
             
             # Green for occupied squares, red for empty ones
             if is_occupied:
-                cv2.rectangle(img_display, (left, top), (right, bottom), (0, 255, 0), 2)
+
+                if piece_color is 'black':
+                    cv2.rectangle(img_display, (left, top), (right, bottom), (0, 0, 255), 2)
+                else:
+                    cv2.rectangle(img_display, (left, top), (right, bottom), (0, 255, 0), 2)
             
             piece_peak = stats['piece_peak']
 
-            if piece_color is not None:
-                text = f"{piece_color}"
-                cv2.putText(img_display, text, (left + 5, top + 20),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 2)
+            # if piece_color is not None:
+            #     text = f"{piece_color}"
+            #     cv2.putText(img_display, text, (left + 5, top + 20),
+            #         cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 2)
                 # Addtext
             # text = f"{stats['edge_percentage']:.2f} -- {stats['pixel_variance']:.2f}%"
             # cv2.putText(img_display, text, (left + 5, top + 80),
-            #         cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 1)
+            #         cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 0, 0), 1)
             
     return img_display
 
@@ -229,14 +236,24 @@ def display_game_state(square_results, stats_results, img, filtered_img, current
 
 def analyze_all_images(folder_path):
     results = {}
+
+    frame_start = 0
+
+    start_time = time.time()
     
     # Process all images in folder
     for filename in os.listdir(folder_path):
         if filename.endswith(('.png', '.jpg', '.jpeg')):
 
+            
+
             image_path = os.path.join(folder_path, filename)
 
             frame = cv2.imread(image_path)
+
+            if frame_start > 0:
+                frame_start -= 1
+                continue
 
             print("frame", filename)
 
@@ -250,7 +267,7 @@ def analyze_all_images(folder_path):
     
     # Interactive visualization
     image_names = list(results.keys())
-    current_idx = 0
+    current_idx = frame_start
     current_view = 'original'  # 'original', 'gray', 'blurred', 'edges'
 
     data = {}
@@ -283,6 +300,10 @@ def analyze_all_images(folder_path):
 
     with open('game_state.json', 'w') as f:
         json.dump(data, f)
+
+
+    end_time = time.time()
+    print(f"Time taken: {end_time - start_time} seconds")
 
 
     ###########################################

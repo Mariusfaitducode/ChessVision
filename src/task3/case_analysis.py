@@ -27,7 +27,7 @@ def detect_if_case_is_occupied(edges_frame, blurred_frame, inner_top, inner_left
     # Threshold to determine if square is occupied
     edge_threshold = 1  # Adjust this threshold as needed
     # A square is considered occupied if it contains enough edges
-    is_occupied = bool(edge_percentage > 1 or pixel_variance > 50)
+    is_occupied = bool(edge_percentage > 1 and pixel_variance > 100) or bool(pixel_variance > 200)
 
     return is_occupied, edge_percentage, pixel_variance
 

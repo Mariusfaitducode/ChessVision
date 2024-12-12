@@ -199,7 +199,7 @@ def actualize_game_state(game_actualization, move_analysis, board):
             game_actualization['piece_certainty'][pos] = {}
     
     # Mettre à jour le plateau si certitude suffisante
-    CERTAINTY_THRESHOLD = 0.65
+    CERTAINTY_THRESHOLD = 0.8
     for pos, certainties in game_actualization['piece_certainty'].items():
         for piece, prob in certainties.items():
             if prob > CERTAINTY_THRESHOLD:

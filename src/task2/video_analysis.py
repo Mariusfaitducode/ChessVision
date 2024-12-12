@@ -1,4 +1,5 @@
 import os
+import time
 
 import cv2
 import numpy as np
@@ -33,7 +34,7 @@ def process_video(video_path):
 
     # Initialize tracking variables
     last_frame_corners_extremities = None
-    frame_count = 9000
+    frame_count = 0
     frame_interval = 25
 
     frame_save_interval = 25
@@ -59,6 +60,9 @@ def process_video(video_path):
     # last_frame = None
 
     skip_moment = False
+
+
+    start_time = time.time()
 
     while True:
 
@@ -118,7 +122,7 @@ def process_video(video_path):
 
         else: 
             print("NO CORNERS FOUND")
-
+            continue
             skip_moment = True
 
             if cache['chessboard_corners_extremities'] is None:
@@ -236,8 +240,8 @@ def process_video(video_path):
         # * DISPLAY RESULTS
         ###########################################
 
-        frame = resize_frame(frame, 1200)
-        cv2.imshow('frame', frame)
+        # frame = resize_frame(frame, 1200)
+        # cv2.imshow('frame', frame)
 
         if warped_frame is not None and not skip_moment:
             # warped_frame = resize_frame(warped_frame, 1200)
@@ -257,20 +261,25 @@ def process_video(video_path):
         os.makedirs("images_results/warped_images", exist_ok=True)
         os.makedirs("images_results/frames", exist_ok=True)
         if frame_count % frame_save_interval == 0 or skip_moment:
-            if frame is not None:
-                frame_name = f"frame_{frame_count:06d}.png"
-                cv2.imwrite(os.path.join('images_results/frames', frame_name), frame)
-                print(f"Saved: {frame_name}")
+            # if frame is not None:
+                # frame_name = f"frame_{frame_count:06d}.png"
+                # cv2.imwrite(os.path.join('images_results/frames', frame_name), frame)
+                # print(f"Saved: {frame_name}")
 
             if warped_frame is not None and not skip_moment:
                 warped_frame_name = f"warped_frame_{frame_count:06d}.png"
-                cv2.imwrite(os.path.join('images_results/challenge_warped_moving', warped_frame_name), warped_frame)
+                # cv2.imwrite(os.path.join('images_results/challenge_warped_moving', warped_frame_name), warped_frame)
                 print(f"Saved: {warped_frame_name}")
 
             skip_moment = False
 
         # frame_count += 1
-    
+
+    end_time = time.time()
+    print('#############################################################')
+    print(f"Time taken: {end_time - start_time} seconds")
+    print('#############################################################')
+
     # Release resources
     cap.release()
     cv2.destroyAllWindows()
@@ -282,6 +291,6 @@ if __name__ == "__main__":
                   '-master/project/task2/videos/moving_2.mov')  # Remplacez par le chemin de votre vidéo
     
 
-    video_path = 'challenge/challenge_moving.MOV'
+    video_path = 'challenge/challenge_fix.MOV'
 
     process_video(video_path)

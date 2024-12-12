@@ -51,7 +51,7 @@ def process_video(video_path):
     # Chessboard parameters
     chessboard_size = (7, 7)
     # Camera calibration
-    calibrate_camera_from_video(video_path, chessboard_size, frame_interval=1000, show_process=False)
+    # calibrate_camera_from_video(video_path, chessboard_size, frame_interval=1000, show_process=False)
 
     # Frame parameters
     frame_count = 0
@@ -84,8 +84,6 @@ def process_video(video_path):
     potential_castling = None
     board = None
 
-    skip_moment = False
-
     # Ajout des variables de contrôle
     paused = False
     frame_step = 0  # Pour stocker le nombre de frames à avancer/reculer
@@ -95,7 +93,11 @@ def process_video(video_path):
     last_frame_analyzed = 0
     data = {'game_states': []}
 
+    skip_moment = False
+
+
     while True:
+
         if not paused:
             frame_count += 1
         else:
@@ -155,11 +157,20 @@ def process_video(video_path):
 
         else: # * No corners found with cv2.findChessboardCorners
 
+            print("NO CORNERS FOUND")
+            continue
+
+
+            skip_moment = True
+
+            if cache['chessboard_corners_extremities'] is None:
+                continue
+
             chessboard_corners_extremities = cache['chessboard_corners_extremities']
             
             # * SEARCH CORNERS USING LAST KNOWN CORNERS AND CORNERS TRACKING
 
-            if cache['extended_grid'] is not None and cache['last_frame'] is not None:
+            if cache['extended_grid'] is not None and cache['last_frame'] is not None and cache['extended_mask'] is not None:
 
                 extremities, grid, mask = estimate_corners_movement(cache['extended_grid'], cache['extended_mask'], frame, cache['last_frame'], debug=False)
 
@@ -216,10 +227,12 @@ def process_video(video_path):
 
         # print(f"Frames in history: {list(game_history.keys())}")
 
-        if frame_count % frame_save_interval == 0:
-            #########################################
-            # * CHESSBOARD ANALYSIS
-            #########################################
+        #########################################
+        # * CHESSBOARD ANALYSIS
+        #########################################
+
+        if frame_count % frame_save_interval == 0 :
+            
 
             # * Si on revient en arrière et qu'on a déjà analysé cette frame
             if frame_count in game_history.keys():
@@ -227,7 +240,7 @@ def process_video(video_path):
                 img_display = game_history[frame_count]['display_frame']
                 cv2.imshow('warped_frame', img_display)
 
-            else:
+            elif not skip_moment:
                 print('NEW ANALYSIS')
                 # * Analyse normale
 
@@ -238,6 +251,8 @@ def process_video(video_path):
                 game_state = retrieve_game_state(square_results, last_game_state)
 
                 img_display = display_game_state(square_results, stats, img, filtered_images)
+
+                img_display = cv2.rotate(img_display, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
 
                 # state = {
@@ -250,6 +265,7 @@ def process_video(video_path):
                 #########################################
 
                 curr_state = np.fliplr(game_state.copy())
+                curr_state = np.rot90(curr_state.copy(), k=-1)
                 # json_board = curr_state.tolist()
                 json_board = None
 
@@ -326,6 +342,8 @@ def process_video(video_path):
                         cv2.imshow('warped_frame', img_display)
 
                         # Sauvegarder l'état actuel dans l'historique
+
+
                         
 
 
@@ -354,47 +372,47 @@ def process_video(video_path):
         ###########################################
         
         # Compute homography matrix
-        H = None
-        objp = None
+        # H = None
+        # objp = None
 
-        if chessboard_corners is not None:
-            H, objp = compute_homography(chessboard_corners)
+        # if chessboard_corners is not None:
+        #     H, objp = compute_homography(chessboard_corners)
         
-        # Update cache with valid homography results
-        if H is not None:
-            cache['H'] = H
-            cache['objp'] = objp
+        # # Update cache with valid homography results
+        # if H is not None:
+        #     cache['H'] = H
+        #     cache['objp'] = objp
 
-        # Compute and draw 3D pose
-        if cache['labeled_corners'] is not None and cache['objp'] is not None:
-            rvec, tvec = compute_pose(cache['objp'], cache['labeled_corners'])
-            cache['rvec'] = rvec
-            cache['tvec'] = tvec
+        # # Compute and draw 3D pose
+        # if cache['labeled_corners'] is not None and cache['objp'] is not None:
+        #     rvec, tvec = compute_pose(cache['objp'], cache['labeled_corners'])
+        #     cache['rvec'] = rvec
+        #     cache['tvec'] = tvec
 
-        # Camera parameters
-        calibration_results = np.load('camera_calibration_results.npz')
-        camera_matrix = calibration_results['cameraMatrix']
-        dist_coeffs = calibration_results['distCoeffs']
-
-
-        if cache['rvec'] is not None and cache['tvec'] is not None:
-
-            params = {
-                'rvec': cache['rvec'],
-                'tvec': cache['tvec'],
-                'camera_matrix': camera_matrix,
-                'dist_coeffs': dist_coeffs
-            }
+        # # Camera parameters
+        # calibration_results = np.load('camera_calibration_results.npz')
+        # camera_matrix = calibration_results['cameraMatrix']
+        # dist_coeffs = calibration_results['distCoeffs']
 
 
-            # frame = display_chess_piece(frame, params, actualized_game_state.values(), 5, 5)
+        # if cache['rvec'] is not None and cache['tvec'] is not None:
+
+        #     params = {
+        #         'rvec': cache['rvec'],
+        #         'tvec': cache['tvec'],
+        #         'camera_matrix': camera_matrix,
+        #         'dist_coeffs': dist_coeffs
+        #     }
+
+
+        #     # frame = display_chess_piece(frame, params, actualized_game_state.values(), 5, 5)
 
             
 
-            frame = display_chess_game_3d(frame, params, actualized_game_state)
+        #     frame = display_chess_game_3d(frame, params, actualized_game_state)
 
-            # Garder l'affichage des axes si souhaité
-            frame = draw_axis(frame, cache['rvec'], cache['tvec'])
+        #     # Garder l'affichage des axes si souhaité
+        #     frame = draw_axis(frame, cache['rvec'], cache['tvec'])
 
         ###########################################
         # * DISPLAY RESULTS
@@ -403,7 +421,7 @@ def process_video(video_path):
         frame = resize_frame(frame, 1200)
         cv2.imshow('frame', frame)
 
-        
+        # skip_moment = False
 
 
         ##########################################
@@ -442,7 +460,7 @@ def process_video(video_path):
         #         cv2.imwrite(os.path.join('images_results/warped_images', warped_frame_name), warped_frame)
         #         print(f"Saved: {warped_frame_name}")
 
-        #     skip_moment = False
+        
 
         # frame_count += 1
     

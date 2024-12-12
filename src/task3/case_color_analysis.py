@@ -2,6 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.mixture import GaussianMixture
 
+mean_white_on_white = None
+mean_white_on_black = None
+mean_black_on_black = None
+mean_black_on_white = None
+
 
 def extract_features(piece_region):
     """Extrait les caractéristiques de l'image d'une pièce"""
@@ -73,6 +78,8 @@ def classify_pieces(occupied_squares, debug=False):
     Classifie les pièces en groupes en utilisant K-means
     occupied_squares: liste de tuples (piece_region, is_dark_square, position)
     """
+    global mean_white_on_white, mean_white_on_black, mean_black_on_black, mean_black_on_white
+
     # Extraire les caractéristiques de chaque pièce
     features = []
     for piece_region, is_dark, pos in occupied_squares:
@@ -92,12 +99,14 @@ def classify_pieces(occupied_squares, debug=False):
 
     # Vérifier s'il y a assez d'échantillons pour faire une classification
     n_samples = len(features_normalized)
-    if n_samples < 2:  # S'il y a moins de 2 échantillons
-        # Retourner un résultat par défaut
-        results = {}
-        for _, _, pos in occupied_squares:
-            results[pos] = None  # ou une valeur par défaut
-        return results
+    # if n_samples < 2:  # S'il y a moins de 2 échantillons
+    #     # Retourner un résultat par défaut
+    #     results = {}
+    #     for _, _, pos in occupied_squares:
+    #         results[pos] = None  # ou une valeur par défaut
+    #     return results
+    
+    # print('N SAMPLES :', n_samples)
 
     n_clusters = min(4, n_samples)
     gmm = GaussianMixture(n_components=n_clusters, covariance_type='full', random_state=42)
@@ -105,7 +114,7 @@ def classify_pieces(occupied_squares, debug=False):
 
     cleaned_features, cleaned_clusters, outliers_mask = remove_outliers(clusters, features_normalized, debug=False)
 
-    if debug:
+    if False:
 
         ###########################################
         # * DISPLAY CLUSTERS RESULTS
@@ -228,24 +237,106 @@ def classify_pieces(occupied_squares, debug=False):
         print(f"Clusters avec mean élevé: {high_mean_clusters}")
         print(f"Clusters avec std élevé: {high_std_clusters}")
 
-
+    # print('N SAMPLES :', n_samples)
     # Filtrer les résultats pour exclure les outliers
     results = {}
-    for i, (_, _, pos) in enumerate(occupied_squares):
-        if not outliers_mask[i]:  # Ignorer les outliers
-            cluster = clusters[i]
-            is_high_mean = cluster in high_mean_clusters
-            is_high_std = cluster in high_std_clusters
+    if n_samples >= 6:
+        # Stocker les moyennes pour chaque cluster
+        cluster_stats = {}
+        for c in range(n_clusters):
+            cluster_mask = clusters == c
+            if np.any(cluster_mask):
+                mean_intensity = np.mean(features[cluster_mask, 0])  # Moyenne des means
+                mean_std = np.mean(features[cluster_mask, 1])       # Moyenne des stds
+                cluster_stats[c] = {
+                    'mean': mean_intensity,
+                    'std': mean_std
+                }
 
-            if is_high_mean:
-                piece_color = 'white' if is_high_std else 'black'
+        # Classifier les pièces et mettre à jour les moyennes globales
+        for i, (_, _, pos) in enumerate(occupied_squares):
+            if not outliers_mask[i]:
+                cluster = clusters[i]
+                is_high_mean = cluster in high_mean_clusters
+                is_high_std = cluster in high_std_clusters
+
+                # Facteur de mise à jour (peut être ajusté)
+                alpha = 0.3  # Plus petit = changement plus lent
+
+                current_stats = np.array([cluster_stats[cluster]['mean'], cluster_stats[cluster]['std']])
+
+                if is_high_mean:
+                    if is_high_std:
+                        if mean_white_on_white is None:
+                            mean_white_on_white = current_stats
+                        # else:
+                        #     mean_white_on_white = (1 - alpha) * mean_white_on_white + alpha * current_stats
+                        piece_color = 'white'
+                    else:
+                        if mean_black_on_white is None:
+                            mean_black_on_white = current_stats
+                        # else:
+                        #     mean_black_on_white = (1 - alpha) * mean_black_on_white + alpha * current_stats
+                        piece_color = 'black'
+                else:
+                    if is_high_std:
+
+                        if mean_black_on_black is None:
+                            mean_black_on_black = current_stats
+                        # else:
+                        #     mean_black_on_black = (1 - alpha) * mean_black_on_black + alpha * current_stats
+                        piece_color = 'black'
+
+                        
+                    else:
+                        if mean_white_on_black is None:
+                            mean_white_on_black = current_stats
+                        # else:
+                        #     mean_white_on_black = (1 - alpha) * mean_white_on_black + alpha * current_stats
+                        piece_color = 'white'
+
+                results[pos] = piece_color
             else:
-                piece_color = 'black' if is_high_std else 'white'
+                results[pos] = None
 
-            results[pos] = piece_color
-        else:
-            # Pour les outliers, on ne met pas de couleur
-            results[pos] = None
+
+    elif n_samples < 6:
+        
+        print("n_samples < 6 : ", n_samples)
+        # Pour chaque cluster, trouver la classe la plus proche basée sur mean et std
+        cluster_assignments = {}
+        for c in range(n_clusters):
+            cluster_mask = clusters == c
+            if np.any(cluster_mask):
+                cluster_mean = np.mean(features[cluster_mask, 0])
+                cluster_std = np.mean(features[cluster_mask, 1])
+                cluster_stats = np.array([cluster_mean, cluster_std])
+
+                # Calculer les distances avec les moyennes stockées
+                distances = {
+                    'white_on_white': np.linalg.norm(cluster_stats - mean_white_on_white),
+                    'white_on_black': np.linalg.norm(cluster_stats - mean_white_on_black),
+                    'black_on_black': np.linalg.norm(cluster_stats - mean_black_on_black),
+                    'black_on_white': np.linalg.norm(cluster_stats - mean_black_on_white)
+                }
+                
+                # Assigner le cluster à la classe la plus proche
+                cluster_assignments[c] = min(distances, key=distances.get)
+
+        # Classifier les pièces selon les assignments des clusters
+        for i, (_, _, pos) in enumerate(occupied_squares):
+            if not outliers_mask[i]:
+                cluster = clusters[i]
+                assigned_class = cluster_assignments.get(cluster)
+                if assigned_class in ['white_on_white', 'white_on_black']:
+                    results[pos] = 'white'
+                else:
+                    results[pos] = 'black'
+            else:
+                results[pos] = None
+
+    # print("mean_white_on_white, mean_white_on_black, mean_black_on_black, mean_black_on_white")
+    # print(mean_white_on_white, mean_white_on_black, mean_black_on_black, mean_black_on_white)
 
     return results
 
