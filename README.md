@@ -1,11 +1,4 @@
-# elen0016-computer-vision-tutorial
+# ♟️ ChessVision – Analyse automatique de parties d’échecs  
 
-Practical sessions for the course ELEN0016 - Computer Vision, University of Liège 2024, Pr. M. Van Droogenbroeck, Anthony Cioppa.
-
-# Sessions
-
-The notebook of the first practical session can be found in [notebooks](notebooks/nb_linear.ipynb).
-
-# Project
-
-The information about the project can be found in [project](project/game_state.ipynb).
+**ChessVision** est un projet de **computer vision** développé dans le cadre du cours ELEN0016 à l’Université de Liège.  
+Il permet d’analyser une vidéo d’une partie d’échecs où les pièces ont été remplacées par des objets neutres et de **reconstituer la partie** en identifiant les pièces correctes.  
